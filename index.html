@@ -144,6 +144,7 @@ select option{background:#111920;}
     <div class="tab" onclick="st('map')">🗺️ MAP VIEW</div>
     <div class="tab" onclick="st('filter')">⚙️ FILTER & EXPORT</div>
     <div class="tab" onclick="st('lookup')">⚡ LOOKUP</div>
+    <div class="tab" onclick="st('nearby')">📍 NEARBY</div>
   </div>
   <!-- SEARCH -->
   <div class="panel active" id="panel-search">
@@ -198,6 +199,70 @@ select option{background:#111920;}
     </div>
     <div class="tw"><table><thead><tr><th>ACCT ID</th><th>NAME</th><th>MOBILE</th><th>CATEGORY</th><th>LOAD</th><th>SUBSTATION</th><th>FEEDER</th><th>MAP</th></tr></thead><tbody id="ftb"></tbody></table></div>
     <div class="pg" id="fpg"></div>
+  </div>
+  
+  <!-- NEARBY -->
+  <div class="panel" id="panel-nearby">
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:flex-end">
+      <div>
+        <div class="lbl">SEARCH RADIUS</div>
+        <div class="sw" style="min-width:140px">
+          <select id="nb-radius">
+            <option value="0.25">250 metres</option>
+            <option value="0.5" selected>500 metres</option>
+            <option value="1">1 km</option>
+            <option value="2">2 km</option>
+            <option value="5">5 km</option>
+            <option value="10">10 km</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <div class="lbl">CATEGORY</div>
+        <div class="sw"><select id="nb-cat"><option value="">ALL</option></select></div>
+      </div>
+      <button class="btn btn-acc" onclick="useMyLocation()">📡 USE MY GPS LOCATION</button>
+      <button class="btn btn-out" onclick="pickOnMap()">🗺️ CLICK ON MAP TO PICK LOCATION</button>
+      <button class="btn" style="background:var(--card);border:1px solid var(--border);color:var(--text)" onclick="clearNearby()">↺ CLEAR</button>
+    </div>
+
+    <!-- Coordinates display -->
+    <div id="nb-coords" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:12px;display:none;align-items:center;gap:16px;flex-wrap:wrap">
+      <span style="color:var(--muted);font-family:var(--fh);letter-spacing:1px">📍 SELECTED LOCATION:</span>
+      <span id="nb-lat-display" style="color:var(--accent2)"></span>
+      <span id="nb-lon-display" style="color:var(--accent2)"></span>
+      <span id="nb-count-display" style="color:var(--accent);font-family:var(--fh);font-weight:700;margin-left:auto"></span>
+    </div>
+
+    <!-- Mini map for nearby -->
+    <div id="nb-map-cont" style="border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:16px;display:none">
+      <div id="nb-map" style="width:100%;height:380px"></div>
+    </div>
+
+    <!-- Instruction box -->
+    <div id="nb-instruction" style="text-align:center;padding:60px 20px;color:var(--muted)">
+      <div style="font-size:52px;margin-bottom:16px">📡</div>
+      <div style="font-family:var(--fh);font-size:20px;letter-spacing:1px;margin-bottom:8px">FIND NEARBY CONSUMERS</div>
+      <div style="font-size:13px;line-height:1.8">
+        Click <strong style="color:var(--accent)">USE MY GPS LOCATION</strong> to find consumers near you<br/>
+        or <strong style="color:var(--accent2)">CLICK ON MAP TO PICK LOCATION</strong> to select any point
+      </div>
+    </div>
+
+    <!-- Results table -->
+    <div id="nb-results" style="display:none">
+      <div class="tw">
+        <table>
+          <thead><tr><th>DIST</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th><th>CATEGORY</th><th>SUBSTATION</th><th>FEEDER</th><th>ADDRESS</th><th>MAP</th></tr></thead>
+          <tbody id="nb-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pg" id="nb-pg"></div>
+      <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-acc" onclick="expNearbyX()">⬇ EXPORT XLSX</button>
+        <button class="btn btn-out" onclick="expNearbyC()">⬇ EXPORT CSV</button>
+      </div>
+    </div>
   </div>
   <!-- LOOKUP -->
   <div class="panel" id="panel-lookup">
@@ -273,6 +338,9 @@ function ia(){
   const lm=hash.match(/lookup=([^&]*)/);
   if(lm){st('lookup');document.getElementById('li').value=decodeURIComponent(lm[1]);dl();}
   FD=[...D];rs(1);af();
+  // Populate nearby category
+  const nbCat=document.getElementById('nb-cat');
+  [...new Set(D.map(r=>r.CATEGORY).filter(Boolean))].sort().forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;nbCat.appendChild(o);});
 }
 function ps(id,items){
   const sel=document.getElementById(id);
@@ -281,11 +349,12 @@ function ps(id,items){
 
 // TABS
 function st(name){
-  ['search','map','filter','lookup'].forEach((n,i)=>{
+  ['search','map','filter','lookup','nearby'].forEach((n,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',n===name);
     document.getElementById('panel-'+n).classList.toggle('active',n===name);
   });
   if(name==='map'&&!MAP)initMap();
+  if(name==='nearby'&&!NBM)initNearbyMap();
 }
 
 // SEARCH
@@ -465,6 +534,197 @@ function showFetchError(msg) {
   document.getElementById('upload-screen').style.display = 'flex';
   const p = document.querySelector('.upload-box p');
   p.innerHTML = '<span style="color:#FF6B6B;font-size:13px">⚠ Auto-load failed: ' + msg + '</span><br/>You can still upload the file manually below.';
+}
+
+
+// ─── NEARBY CONSUMERS ───────────────────────────────────────────────────────
+let NBM = null, NBL = null, NBCenter = null, NBData = [], nbPage = 1;
+let pickMode = false, NBCircle = null, NBCenterMarker = null;
+
+function initNearbyMap() {
+  NBM = L.map('nb-map').setView([25.45, 78.57], 13);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OSM, © CARTO', maxZoom: 19
+  }).addTo(NBM);
+  NBL = L.layerGroup().addTo(NBM);
+
+  // Click on map to pick location
+  NBM.on('click', function(e) {
+    if (!pickMode) return;
+    pickMode = false;
+    NBM.getContainer().style.cursor = '';
+    document.getElementById('nb-instruction').style.display = 'none';
+    document.getElementById('nb-map-cont').style.display = 'block';
+    setNearbyCenter(e.latlng.lat, e.latlng.lng);
+  });
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) return alert('GPS not supported in your browser.');
+  document.getElementById('nb-instruction').innerHTML = '<div style="font-size:40px">📡</div><div style="font-family:var(--fh);font-size:16px;color:var(--accent);margin-top:12px;letter-spacing:1px">GETTING YOUR LOCATION…</div>';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById('nb-instruction').style.display = 'none';
+      document.getElementById('nb-map-cont').style.display = 'block';
+      if (!NBM) initNearbyMap();
+      setTimeout(() => setNearbyCenter(pos.coords.latitude, pos.coords.longitude), 100);
+    },
+    err => {
+      document.getElementById('nb-instruction').innerHTML = '<div style="font-size:40px">⚠️</div><div style="font-family:var(--fh);font-size:16px;color:#FF6B6B;margin-top:12px">Could not get GPS location.<br/>Please allow location access or pick on map.</div>';
+    }
+  );
+}
+
+function pickOnMap() {
+  document.getElementById('nb-instruction').style.display = 'none';
+  document.getElementById('nb-map-cont').style.display = 'block';
+  if (!NBM) initNearbyMap();
+  pickMode = true;
+  setTimeout(() => {
+    NBM.getContainer().style.cursor = 'crosshair';
+    // Show tip
+    const tip = L.popup({closeButton:false, autoClose:true})
+      .setLatLng(NBM.getCenter())
+      .setContent('<div style="font-family:sans-serif;font-size:13px;color:#000">🖱️ Click anywhere on the map to select location</div>')
+      .openOn(NBM);
+  }, 200);
+}
+
+function setNearbyCenter(lat, lon) {
+  NBCenter = { lat, lon };
+
+  // Update coord display
+  document.getElementById('nb-coords').style.display = 'flex';
+  document.getElementById('nb-lat-display').textContent = 'LAT: ' + lat.toFixed(6);
+  document.getElementById('nb-lon-display').textContent = 'LON: ' + lon.toFixed(6);
+
+  // Draw on map
+  NBL.clearLayers();
+  const radius = parseFloat(document.getElementById('nb-radius').value) * 1000; // km to metres
+
+  // Remove old circle & center marker
+  if (NBCircle) NBM.removeLayer(NBCircle);
+  if (NBCenterMarker) NBM.removeLayer(NBCenterMarker);
+
+  // Draw radius circle
+  NBCircle = L.circle([lat, lon], {
+    radius: radius,
+    color: '#F5A623', weight: 2, opacity: 0.8,
+    fillColor: '#F5A623', fillOpacity: 0.06
+  }).addTo(NBM);
+
+  // Draw center marker
+  NBCenterMarker = L.circleMarker([lat, lon], {
+    radius: 8, fillColor: '#F5A623', color: '#fff',
+    weight: 2, opacity: 1, fillOpacity: 1
+  }).bindPopup('<b style="font-family:sans-serif">📍 Selected Location</b>').addTo(NBM);
+
+  NBM.fitBounds(NBCircle.getBounds(), { padding: [20, 20] });
+
+  // Find nearby consumers
+  findNearby(lat, lon);
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+            Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+            Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function findNearby(lat, lon) {
+  const radius = parseFloat(document.getElementById('nb-radius').value);
+  const cat = document.getElementById('nb-cat').value;
+
+  NBData = D
+    .filter(r => r.LAT && r.LON)
+    .map(r => ({ ...r, _dist: haversine(lat, lon, parseFloat(r.LAT), parseFloat(r.LON)) }))
+    .filter(r => r._dist <= radius)
+    .filter(r => !cat || r.CATEGORY === cat)
+    .sort((a, b) => a._dist - b._dist);
+
+  document.getElementById('nb-count-display').textContent = NBData.length + ' CONSUMERS FOUND';
+
+  // Plot on map
+  NBL.clearLayers();
+  // Re-add circle and center
+  if (NBCircle) NBCircle.addTo(NBM);
+  if (NBCenterMarker) NBCenterMarker.addTo(NBM);
+
+  NBData.forEach(r => {
+    const c = L.circleMarker([r.LAT, r.LON], {
+      radius: 6, fillColor: cc(r.CATEGORY), color: '#000',
+      weight: 0.5, opacity: 1, fillOpacity: 0.9
+    });
+    const mapUrl = 'https://www.google.com/maps?q=' + r.LAT + ',' + r.LON;
+    c.bindPopup(`<div style="font-family:sans-serif;font-size:12px;min-width:180px">
+      <strong>${r.NAME||'Unknown'}</strong><br/>
+      <span style="color:#888">Acct: ${r.ACCT_ID}</span><br/>
+      <span style="color:#888">Mobile: ${r.MOBILE_NO||'-'}</span><br/>
+      <b>${r.CATEGORY||''}</b> · ${r._dist < 1 ? (r._dist*1000).toFixed(0)+' m' : r._dist.toFixed(2)+' km'}<br/>
+      <a href="${mapUrl}" target="_blank" style="color:#00C4FF">📍 Open Maps</a>
+    </div>`);
+    NBL.addLayer(c);
+  });
+
+  // Show results
+  if (NBData.length > 0) {
+    document.getElementById('nb-results').style.display = 'block';
+    renderNearbyTable(1);
+  } else {
+    document.getElementById('nb-results').style.display = 'none';
+    document.getElementById('nb-count-display').textContent = '0 CONSUMERS IN RANGE';
+  }
+}
+
+function renderNearbyTable(page) {
+  nbPage = page;
+  const slice = NBData.slice((page-1)*PS, page*PS);
+  document.getElementById('nb-tbody').innerHTML = slice.map(r => {
+    const dist = r._dist < 1 ? (r._dist*1000).toFixed(0)+' m' : r._dist.toFixed(2)+' km';
+    const mapUrl = 'https://www.google.com/maps?q=' + r.LAT + ',' + r.LON;
+    return `<tr>
+      <td style="font-family:var(--fh);color:var(--accent);font-weight:700">${dist}</td>
+      <td style="font-family:var(--fh);color:var(--accent2)">${r.ACCT_ID}</td>
+      <td style="font-weight:500">${r.NAME||''}</td>
+      <td>${r.MOBILE_NO||''}</td>
+      <td>${cb(r.CATEGORY)}</td>
+      <td>${r.SUBSTATION||''}</td>
+      <td>${r.FEEDER||''}</td>
+      <td title="${r.ADDRESS||''}" style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${r.ADDRESS||''}</td>
+      <td><a class="ml" href="${mapUrl}" target="_blank">📍 MAP</a></td>
+    </tr>`;
+  }).join('');
+  rp('nb-pg', page, Math.ceil(NBData.length/PS), p => renderNearbyTable(p));
+}
+
+function clearNearby() {
+  NBCenter = null; NBData = []; nbPage = 1; pickMode = false;
+  if (NBL) NBL.clearLayers();
+  if (NBCircle) { NBM.removeLayer(NBCircle); NBCircle = null; }
+  if (NBCenterMarker) { NBM.removeLayer(NBCenterMarker); NBCenterMarker = null; }
+  document.getElementById('nb-coords').style.display = 'none';
+  document.getElementById('nb-results').style.display = 'none';
+  document.getElementById('nb-instruction').style.display = 'block';
+  document.getElementById('nb-instruction').innerHTML = '<div style="font-size:52px;margin-bottom:16px">📡</div><div style="font-family:var(--fh);font-size:20px;letter-spacing:1px;margin-bottom:8px">FIND NEARBY CONSUMERS</div><div style="font-size:13px;line-height:1.8">Click <strong style="color:var(--accent)">USE MY GPS LOCATION</strong> to find consumers near you<br/>or <strong style="color:var(--accent2)">CLICK ON MAP TO PICK LOCATION</strong> to select any point</div>';
+}
+
+function expNearbyX() {
+  if (!NBData.length) return alert('No data.');
+  const ws = XLSX.utils.json_to_sheet(NBData.map(r => ({...r, DISTANCE: r._dist < 1 ? (r._dist*1000).toFixed(0)+' m' : r._dist.toFixed(2)+' km'})));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Nearby');
+  XLSX.writeFile(wb, 'uppcl_nearby_' + Date.now() + '.xlsx');
+}
+function expNearbyC() {
+  if (!NBData.length) return alert('No data.');
+  const ws = XLSX.utils.json_to_sheet(NBData.map(r => ({...r, DISTANCE: r._dist < 1 ? (r._dist*1000).toFixed(0)+' m' : r._dist.toFixed(2)+' km'})));
+  const csv = XLSX.utils.sheet_to_csv(ws);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = 'uppcl_nearby_' + Date.now() + '.csv'; a.click();
 }
 
 </script>
