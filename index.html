@@ -119,6 +119,25 @@ select option{background:#111920;}
 .atr-other{background:#1A1A2A;color:#8888FF;border-color:#8888FF55;}
 .atr-saved{animation:atrpop .3s ease;}
 @keyframes atrpop{0%{transform:scale(1.2);}100%{transform:scale(1);}}
+/* Detail Modal */
+.modal-overlay{position:fixed;inset:0;background:#000000CC;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px #000;}
+.modal-header{background:linear-gradient(135deg,#0E1C25,#111920);padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.modal-close{background:transparent;border:1px solid var(--border);color:var(--muted);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.modal-close:hover{border-color:#FF4D4D;color:#FF4D4D;}
+.modal-body{padding:20px 24px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.modal-field .lbl{font-size:10px;color:var(--muted);font-family:var(--fh);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.modal-field .val{font-size:13px;color:var(--text);}
+.atr-big-select{font-family:var(--fh);font-size:14px;font-weight:700;letter-spacing:1px;padding:12px 16px;border-radius:10px;border:2px solid var(--border);cursor:pointer;outline:none;width:100%;transition:all .2s;margin-top:6px;}
+.atr-big-dc{background:#2A1A1A;color:#FF8080;border-color:#FF4D4D88;}
+.atr-big-paid{background:#1A3A2A;color:#2ECC71;border-color:#2ECC7188;}
+.atr-big-lock{background:#2A1A3A;color:#AA80FF;border-color:#AA80FF88;}
+.atr-big-theft{background:#3A1A1A;color:#FF4D4D;border-color:#FF4D4D88;}
+.atr-big-other{background:#1A1A2A;color:#8888FF;border-color:#8888FF88;}
+.save-atr-btn{width:100%;background:var(--accent);color:#000;font-family:var(--fh);font-size:15px;font-weight:700;letter-spacing:1.5px;padding:13px;border-radius:10px;border:none;cursor:pointer;margin-top:12px;transition:opacity .2s;}
+.save-atr-btn:hover{opacity:.85;}
+.save-indicator{text-align:center;font-family:var(--fh);font-size:12px;margin-top:8px;min-height:18px;}
 </style>
 </head>
 <body>
@@ -463,6 +482,47 @@ select option{background:#111920;}
       </div>
     </div>
   </div>
+  <!-- Consumer Detail Modal -->
+  <div class="modal-overlay" id="detail-modal" style="display:none" onclick="if(event.target===this)closeModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <div style="font-family:var(--fh);font-size:22px;font-weight:700" id="modal-name">—</div>
+          <div style="margin-top:4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <span style="color:var(--accent);font-family:var(--fh);font-size:13px;letter-spacing:1px" id="modal-acct">—</span>
+            <span id="modal-cat-badge"></span>
+            <span id="modal-dc-badge"></span>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Fields grid -->
+        <div class="modal-grid" id="modal-grid"></div>
+
+        <!-- ATR Section (only for DC consumers) -->
+        <div id="modal-atr-section" style="display:none;background:#0E1C25;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px">
+          <div style="font-family:var(--fh);font-size:13px;font-weight:700;letter-spacing:1px;color:var(--accent2);margin-bottom:10px">📋 ATR STATUS</div>
+          <select class="atr-big-select atr-big-dc" id="modal-atr-select" onchange="updateModalAtrStyle()">
+            <option value="DISCONNECTED">🔴 DISCONNECTED</option>
+            <option value="PAID">✅ PAID</option>
+            <option value="LOCK">🔒 LOCK</option>
+            <option value="THEFT">⚠️ THEFT</option>
+            <option value="OTHER">📋 OTHER</option>
+          </select>
+          <button class="save-atr-btn" onclick="saveModalAtr()">💾 SAVE ATR STATUS</button>
+          <div class="save-indicator" id="modal-save-ind"></div>
+        </div>
+
+        <!-- Action buttons -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a id="modal-map-btn" href="#" target="_blank" class="mb" style="display:none">📍 OPEN IN GOOGLE MAPS</a>
+          <button class="clb" onclick="copyModalLink()">🔗 COPY LINK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -611,7 +671,7 @@ function rs(page){
   const res=gr();const q=document.getElementById('si').value.trim().toLowerCase();
   document.getElementById('rc').textContent=res.length.toLocaleString();
   const sl2=res.slice((page-1)*PS,page*PS);
-  document.getElementById('stb').innerHTML=sl2.map(r=>`<tr><td style="font-family:var(--fh);color:var(--accent2)">${h(String(r.ACCT_ID),q)}</td><td style="font-weight:500">${h(r.NAME||'',q)}</td><td>${h(String(r.MOBILE_NO||''),q)}</td><td>${cb(r.CATEGORY)}</td><td>${h(r.SUBSTATION||'',q)}</td><td>${h(r.FEEDER||'',q)}</td><td title="${r.ADDRESS||''}">${h(r.ADDRESS||'',q)}</td><td>${(r.LAT&&r.LON)?`<a class="ml" href="https://www.google.com/maps?q=${r.LAT},${r.LON}" target="_blank">📍 MAP</a>`:''}</td></tr>`).join('');
+  document.getElementById('stb').innerHTML=sl2.map(r=>`<tr><td style="font-family:var(--fh);color:var(--accent2);cursor:pointer;text-decoration:underline;text-underline-offset:3px" onclick="openMainDetail('${String(r.ACCT_ID)}')" title="Click to view details">${h(String(r.ACCT_ID),q)}</td><td style="font-weight:500;cursor:pointer" onclick="openMainDetail('${String(r.ACCT_ID)}')">${h(r.NAME||'',q)}</td><td>${h(String(r.MOBILE_NO||''),q)}</td><td>${cb(r.CATEGORY)}</td><td>${h(r.SUBSTATION||'',q)}</td><td>${h(r.FEEDER||'',q)}</td><td title="${r.ADDRESS||''}">${h(r.ADDRESS||'',q)}</td><td>${(r.LAT&&r.LON)?`<a class="ml" href="https://www.google.com/maps?q=${r.LAT},${r.LON}" target="_blank">📍 MAP</a>`:''}</td></tr>`).join('');
   rp('spg',page,Math.ceil(res.length/PS),p=>rs(p));
 }
 function h(t,q){if(!q||!t)return t;const i=t.toLowerCase().indexOf(q);if(i<0)return t;return t.slice(0,i)+'<mark>'+t.slice(i,i+q.length)+'</mark>'+t.slice(i+q.length);}
@@ -1286,8 +1346,8 @@ function renderDcTable(page) {
     const acctId = String(r.ACCT_ID);
     return `<tr id="dc-row-${acctId}">
       <td style="color:var(--muted);font-size:11px">${date}</td>
-      <td style="font-family:var(--fh);color:var(--accent2)">${r.ACCT_ID}</td>
-      <td style="font-weight:500">${r.NAME}</td>
+      <td style="font-family:var(--fh);color:var(--accent2);cursor:pointer;text-decoration:underline;text-underline-offset:3px" onclick="openDcDetail('${acctId}')" title="Click to view details">${r.ACCT_ID}</td>
+      <td style="font-weight:500;cursor:pointer" onclick="openDcDetail('${acctId}')">${r.NAME}</td>
       <td>${r.MOBILE_NO}</td>
       <td style="font-size:11px;color:var(--muted)">${r.METER_NO}</td>
       <td><span class="badge b-gov">${r.LMV}</span></td>
@@ -1483,6 +1543,149 @@ function expDcNbC() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   a.download = 'dc_nearby_' + Date.now() + '.csv'; a.click();
+}
+
+
+// ─── DETAIL MODAL ────────────────────────────────────────────────────────────
+let modalCurrentAcct = null;
+let modalIsDc = false;
+
+function openDcDetail(acctId) {
+  const r = DC.find(row => String(row.ACCT_ID) === String(acctId));
+  if (!r) return;
+  modalCurrentAcct = String(acctId);
+  modalIsDc = true;
+
+  document.getElementById('modal-name').textContent = r.NAME || 'Unknown';
+  document.getElementById('modal-acct').textContent = 'ACCT: ' + r.ACCT_ID;
+  document.getElementById('modal-cat-badge').innerHTML = '<span class="badge b-gov">' + (r.LMV || '') + '</span>';
+  document.getElementById('modal-dc-badge').innerHTML = '<span class="badge" style="background:#2A1A1A;color:#FF8080">🔴 DISCONNECTED</span>';
+
+  // Date formatting
+  const v = r.DATE_DC;
+  let dateStr = '';
+  if (v) {
+    if (!isNaN(v) && String(v).length <= 6) {
+      const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+      dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    } else { dateStr = String(v).split('T')[0]; }
+  }
+
+  const outstanding = Math.round(parseFloat(r.OUTSTANDING) || 0);
+  const outColor = outstanding > 100000 ? '#FF4D4D' : outstanding > 10000 ? '#F5A623' : 'var(--text)';
+
+  document.getElementById('modal-grid').innerHTML = `
+    <div class="modal-field"><div class="lbl">DATE OF DISCONNECTION</div><div class="val">${dateStr || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">MOBILE NO</div><div class="val">${r.MOBILE_NO || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">METER NUMBER</div><div class="val">${r.METER_NO || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">LMV TYPE</div><div class="val">${r.LMV || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">LOAD</div><div class="val">${r.LOAD || '-'} kW</div></div>
+    <div class="modal-field"><div class="lbl">OUTSTANDING</div><div class="val" style="font-family:var(--fh);font-weight:700;font-size:16px;color:${outColor}">₹${outstanding.toLocaleString()}</div></div>
+    <div class="modal-field"><div class="lbl">SUBSTATION</div><div class="val">${r.SUBSTATION || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">FEEDER</div><div class="val">${r.FEEDER || '-'}</div></div>
+    <div class="modal-field" style="grid-column:span 2"><div class="lbl">ADDRESS</div><div class="val">${r.ADDRESS || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">LATITUDE</div><div class="val">${r.LAT || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">LONGITUDE</div><div class="val">${r.LON || '-'}</div></div>
+  `;
+
+  // ATR section
+  const atrSel = document.getElementById('modal-atr-select');
+  atrSel.value = r.ATR_STATUS || 'DISCONNECTED';
+  updateModalAtrStyle();
+  document.getElementById('modal-atr-section').style.display = 'block';
+  document.getElementById('modal-save-ind').textContent = '';
+
+  // Map button
+  const mapBtn = document.getElementById('modal-map-btn');
+  if (r.LAT && r.LON) {
+    mapBtn.href = 'https://www.google.com/maps?q=' + r.LAT + ',' + r.LON;
+    mapBtn.style.display = 'inline-flex';
+  } else { mapBtn.style.display = 'none'; }
+
+  document.getElementById('detail-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function openMainDetail(acctId) {
+  const r = D.find(row => String(row.ACCT_ID) === String(acctId));
+  if (!r) return;
+  modalCurrentAcct = String(acctId);
+  modalIsDc = false;
+
+  document.getElementById('modal-name').textContent = r.NAME || 'Unknown';
+  document.getElementById('modal-acct').textContent = 'ACCT: ' + r.ACCT_ID;
+  document.getElementById('modal-cat-badge').innerHTML = cb(r.CATEGORY);
+  document.getElementById('modal-dc-badge').innerHTML = '';
+
+  document.getElementById('modal-grid').innerHTML = `
+    <div class="modal-field"><div class="lbl">FATHER'S NAME</div><div class="val">${r.FATHER_NAME || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">MOBILE</div><div class="val">${r.MOBILE_NO || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">LOAD</div><div class="val">${r.LOAD || '-'} kW</div></div>
+    <div class="modal-field"><div class="lbl">SERIAL NUMBER</div><div class="val">${r.SERIAL_NBR || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">SUBSTATION</div><div class="val">${r.SUBSTATION || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">FEEDER</div><div class="val">${r.FEEDER || '-'}</div></div>
+    <div class="modal-field" style="grid-column:span 2"><div class="lbl">ADDRESS</div><div class="val">${r.ADDRESS || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">LATITUDE</div><div class="val">${r.LAT || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">LONGITUDE</div><div class="val">${r.LON || '-'}</div></div>
+  `;
+
+  // No ATR for main consumers
+  document.getElementById('modal-atr-section').style.display = 'none';
+
+  const mapBtn = document.getElementById('modal-map-btn');
+  if (r.LAT && r.LON) {
+    mapBtn.href = 'https://www.google.com/maps?q=' + r.LAT + ',' + r.LON;
+    mapBtn.style.display = 'inline-flex';
+  } else { mapBtn.style.display = 'none'; }
+
+  document.getElementById('detail-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('detail-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function updateModalAtrStyle() {
+  const sel = document.getElementById('modal-atr-select');
+  sel.className = 'atr-big-select atr-big-' + atrSelectClass(sel.value).replace('atr-', '');
+}
+
+function saveModalAtr() {
+  if (!modalCurrentAcct || !modalIsDc) return;
+  const newStatus = document.getElementById('modal-atr-select').value;
+  const ind = document.getElementById('modal-save-ind');
+
+  // Update DC array
+  const idx = DC.findIndex(r => String(r.ACCT_ID) === modalCurrentAcct);
+  if (idx >= 0) {
+    DC[idx].ATR_STATUS = newStatus;
+    const rec = DC[idx];
+
+    // Update inline select in table if visible
+    const inlineSel = document.getElementById('atr-' + modalCurrentAcct);
+    if (inlineSel) {
+      inlineSel.value = newStatus;
+      inlineSel.className = 'atr-select ' + atrSelectClass(newStatus);
+    }
+
+    // Save to storage + sheet
+    saveAtrToStorage(rec);
+    dcUpdateAtrCards();
+
+    ind.textContent = '✅ ATR saved — ' + newStatus;
+    ind.style.color = '#2ECC71';
+    setTimeout(() => ind.textContent = '', 3000);
+  }
+}
+
+function copyModalLink() {
+  if (!modalCurrentAcct) return;
+  navigator.clipboard.writeText(location.origin + location.pathname + '#lookup=' + modalCurrentAcct).then(() => toast());
 }
 
 </script>
