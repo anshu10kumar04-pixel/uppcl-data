@@ -631,7 +631,7 @@ function hf(file){
   };
   r.readAsBinaryString(file);
 }
-function sl(m,p){document.getElementById('loading').style.display='flex';document.getElementById('lt').textContent=m;document.getElementById('pf').style.width=p+'%';}
+function sl(m,p){const ld=document.getElementById('loading');if(ld)ld.style.display='flex';const lt=document.getElementById('lt');if(lt)lt.textContent=m;const pf=document.getElementById('pf');if(pf)pf.style.width=p+'%';}
 function hl2(){document.getElementById('loading').style.display='none';}
 
 function ia(){
@@ -833,14 +833,16 @@ function toast(){const t=document.getElementById('toast');t.classList.add('show'
 // ─── AUTO FETCH FROM GITHUB ─────────────────────────────────────────────────
 // 4 split files from GitHub
 const FILES = [
-  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/JE%20AJAY%20DATA.xlsx',
-  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/LN.xlsx',
-  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/RAVI%20DATA.xlsx',
-  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/SUMAN.xlsx'
+  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/part1.csv',
+  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/part2.csv',
+  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/part3.csv',
+  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/part4.csv'
 ];
 
 window.addEventListener('DOMContentLoaded', () => {
-  autoFetch();
+  // Data loads after login, not on page load
+  const saved = sessionStorage.getItem('uppcl_role');
+  if (saved) autoFetch(); // Only if already logged in
 });
 
 function autoFetch() {
@@ -854,25 +856,36 @@ function autoFetch() {
     return fetch(url)
       .then(res => {
         if (!res.ok) throw new Error('Failed: ' + url);
-        return res.arrayBuffer();
+        return res.text();
       })
-      .then(buf => {
+      .then(text => {
         completed++;
         sl('LOADING FILE ' + completed + ' OF ' + FILES.length + '…', 10 + Math.round((completed / FILES.length) * 70));
-        const wb = XLSX.read(buf, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        allData[idx] = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+        // Fast CSV parse - much faster than XLSX
+        const lines = text.split('\n');
+        const hdrs = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        const rows = [];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          const vals = line.split(',');
+          const obj = {};
+          hdrs.forEach((h, j) => { obj[h] = (vals[j] || '').replace(/^"|"$/g, '').trim(); });
+          // Handle both column name variants
+          obj.Google_Map_Link = obj['GOOGLE MAP LINK'] || obj['Google_Map_Link'] || 
+            (obj.LAT && obj.LON ? 'https://www.google.com/maps?q=' + obj.LAT + ',' + obj.LON : '');
+          rows.push(obj);
+        }
+        allData[idx] = rows;
       });
   });
 
   Promise.all(promises)
     .then(() => {
-      sl('MERGING ALL DATA…', 85);
-      setTimeout(() => {
-        D = allData.flat();
-        sl('READY…', 98);
-        setTimeout(() => { ia(); hl2(); }, 50);
-      }, 50);
+      sl('MERGING ALL DATA…', 88);
+      D = allData.flat();
+      sl('READY…', 98);
+      requestAnimationFrame(() => { ia(); hl2(); });
     })
     .catch(err => { hl2(); showFetchError(err.message); });
 }
@@ -1866,6 +1879,8 @@ function loginSuccess(role) {
   }
 
   applyRoleRestrictions(role);
+  // Start loading data after login if not already loaded
+  if (D.length === 0) autoFetch();
 }
 
 function applyRoleRestrictions(role) {
