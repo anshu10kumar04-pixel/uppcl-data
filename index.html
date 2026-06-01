@@ -144,6 +144,7 @@ select option{background:#111920;}
     <div class="tab" onclick="st('filter')">⚙️ FILTER & EXPORT</div>
     <div class="tab" onclick="st('lookup')">⚡ LOOKUP</div>
     <div class="tab" onclick="st('nearby')">📍 NEARBY</div>
+    <div class="tab" onclick="st('dc')">🔴 DISCONNECTED</div>
   </div>
   <!-- SEARCH -->
   <div class="panel active" id="panel-search">
@@ -258,11 +259,104 @@ select option{background:#111920;}
       <div id="lr"></div>
     </div>
   </div>
+
+  <!-- DISCONNECTED -->
+  <div class="panel" id="panel-dc">
+    <!-- Stats bar -->
+    <div id="dc-loading" style="text-align:center;padding:40px;color:var(--muted)">
+      <div style="font-size:36px;margin-bottom:12px">🔴</div>
+      <div style="font-family:var(--fh);font-size:16px;letter-spacing:1px" id="dc-load-msg">LOADING DISCONNECTED DATA…</div>
+      <div style="width:200px;height:3px;background:var(--border);border-radius:2px;margin:12px auto;overflow:hidden">
+        <div id="dc-pbar" style="height:100%;background:#FF4D4D;border-radius:2px;width:0%;transition:width .3s"></div>
+      </div>
+    </div>
+
+    <div id="dc-content" style="display:none">
+      <!-- Summary cards -->
+      <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+        <div style="background:var(--card);border:1px solid #FF4D4D33;border-left:3px solid #FF4D4D;border-radius:10px;padding:14px 20px">
+          <div style="font-family:var(--fh);font-size:24px;font-weight:700;color:#FF4D4D" id="dc-total">0</div>
+          <div style="font-size:11px;color:var(--muted)">TOTAL DISCONNECTED</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 20px">
+          <div style="font-family:var(--fh);font-size:24px;font-weight:700;color:var(--accent)" id="dc-outstanding">0</div>
+          <div style="font-size:11px;color:var(--muted)">TOTAL OUTSTANDING (₹)</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 20px">
+          <div style="font-family:var(--fh);font-size:24px;font-weight:700;color:var(--accent2)" id="dc-subs-count">0</div>
+          <div style="font-size:11px;color:var(--muted)">SUBSTATIONS</div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:16px">
+        <div>
+          <div class="lbl">SEARCH</div>
+          <div class="siw"><span class="ico">⌕</span>
+            <input type="text" id="dc-search" placeholder="Name, Acct, Mobile…" oninput="dcFilter()"/>
+          </div>
+        </div>
+        <div>
+          <div class="lbl">SUBSTATION</div>
+          <div class="sw"><select id="dc-sub" onchange="onDcSubChange();dcFilter()"><option value="">ALL SUBSTATIONS</option></select></div>
+        </div>
+        <div>
+          <div class="lbl">FEEDER</div>
+          <div class="sw"><select id="dc-feed" onchange="dcFilter()"><option value="">ALL FEEDERS</option></select></div>
+        </div>
+        <div>
+          <div class="lbl">LMV TYPE</div>
+          <div class="sw"><select id="dc-lmv" onchange="dcFilter()"><option value="">ALL</option></select></div>
+        </div>
+        <div>
+          <div class="lbl">OUTSTANDING (₹)</div>
+          <div style="display:flex;gap:8px">
+            <input type="number" id="dc-amt-min" placeholder="Min" oninput="dcFilter()" style="width:80px;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;outline:none"/>
+            <input type="number" id="dc-amt-max" placeholder="Max" oninput="dcFilter()" style="width:80px;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:13px;outline:none"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result info + export -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted)">
+          Showing <span style="color:var(--accent2);font-weight:600" id="dc-shown">0</span> of 
+          <span style="color:var(--accent2);font-weight:600" id="dc-total2">0</span> records
+          &nbsp;·&nbsp; Outstanding: <span style="color:var(--accent);font-weight:600" id="dc-filt-amt">₹0</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-acc" onclick="expDcX()">⬇ EXPORT XLSX</button>
+          <button class="btn btn-out" onclick="expDcC()">⬇ EXPORT CSV</button>
+          <button class="btn" style="background:var(--card);border:1px solid var(--border);color:var(--text)" onclick="resetDcFilters()">↺ RESET</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th>DATE OF DC</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th>
+              <th>METER NO</th><th>LMV</th><th>OUTSTANDING</th>
+              <th>SUBSTATION</th><th>FEEDER</th><th>MAP</th>
+            </tr>
+          </thead>
+          <tbody id="dc-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pg" id="dc-pg"></div>
+    </div>
+  </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 let D=[],FD=[],MAP=null,ML=null,SUB_FEED_MAP={};
+let DC=[], DC_SUB_FEED_MAP={};  // Disconnected consumers data
+
+const DC_FILES = [
+  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/SM_DISCONNECTED_NOT_RECHARGE.xlsx'
+];
 const PS=50;
 
 // Upload
@@ -370,11 +464,12 @@ function ps(id,items){
 
 // TABS
 function st(name){
-  ['search','filter','lookup','nearby'].forEach((n,i)=>{
+  ['search','filter','lookup','nearby','dc'].forEach((n,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',n===name);
     document.getElementById('panel-'+n).classList.toggle('active',n===name);
   });
   if(name==='nearby'&&!NBM)initNearbyMap();
+  if(name==='dc'&&DC.length===0)loadDC();
 }
 
 // SEARCH
@@ -753,6 +848,193 @@ function expNearbyC() {
   const csv = XLSX.utils.sheet_to_csv(ws);
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
   a.download = 'uppcl_nearby_' + Date.now() + '.csv'; a.click();
+}
+
+
+// ─── DISCONNECTED CONSUMERS ─────────────────────────────────────────────────
+let DC_FD = [], dcPage = 1;
+
+function loadDC() {
+  const pbar = document.getElementById('dc-pbar');
+  const msg = document.getElementById('dc-load-msg');
+  pbar.style.width = '20%';
+  msg.textContent = 'FETCHING FILE…';
+
+  fetch(DC_FILES[0])
+    .then(res => {
+      if (!res.ok) throw new Error('Could not load disconnected file from GitHub.');
+      pbar.style.width = '60%';
+      msg.textContent = 'PARSING DATA…';
+      return res.arrayBuffer();
+    })
+    .then(buf => {
+      pbar.style.width = '85%';
+      const wb = XLSX.read(buf, { type: 'array', raw: false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      DC = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      // Normalise column names to match our usage
+      DC = DC.map(r => ({
+        DATE_DC:    r['Date of DC'] || '',
+        ACCT_ID:    r['account_id'] || '',
+        NAME:       r['NAME'] || '',
+        ADDRESS:    r['ADDRES'] || '',
+        MOBILE_NO:  r['MOBILE NO'] || '',
+        METER_NO:   r['meterno'] || '',
+        LOAD:       r['load'] || '',
+        LMV:        r['LMV'] || '',
+        OUTSTANDING: parseFloat(r['TOTAL OUTSTANDING']) || 0,
+        SUBSTATION: r['SUBSTATION'] || '',
+        FEEDER:     r['FEEDER'] || '',
+        LAT:        r['LAT'] || '',
+        LON:        r['LONG'] || '',
+      }));
+
+      // Build substation->feeder map
+      DC_SUB_FEED_MAP = {};
+      const subSet = new Set(), feedSet = new Set(), lmvSet = new Set();
+      for (let i = 0; i < DC.length; i++) {
+        const r = DC[i];
+        if (r.SUBSTATION) {
+          subSet.add(r.SUBSTATION);
+          if (r.FEEDER) {
+            if (!DC_SUB_FEED_MAP[r.SUBSTATION]) DC_SUB_FEED_MAP[r.SUBSTATION] = new Set();
+            DC_SUB_FEED_MAP[r.SUBSTATION].add(r.FEEDER);
+          }
+        }
+        if (r.FEEDER) feedSet.add(r.FEEDER);
+        if (r.LMV) lmvSet.add(r.LMV);
+      }
+
+      // Populate selects
+      const subSel = document.getElementById('dc-sub');
+      const feedSel = document.getElementById('dc-feed');
+      const lmvSel = document.getElementById('dc-lmv');
+
+      function fillSel(sel, items) {
+        const frag = document.createDocumentFragment();
+        [...items].sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; frag.appendChild(o); });
+        sel.appendChild(frag);
+      }
+      fillSel(subSel, subSet);
+      fillSel(feedSel, feedSet);
+      fillSel(lmvSel, lmvSet);
+
+      // Summary stats
+      const total = DC.length;
+      const totalOut = DC.reduce((s, r) => s + r.OUTSTANDING, 0);
+      document.getElementById('dc-total').textContent = total.toLocaleString();
+      document.getElementById('dc-outstanding').textContent = '₹' + Math.round(totalOut).toLocaleString();
+      document.getElementById('dc-subs-count').textContent = subSet.size;
+
+      pbar.style.width = '100%';
+      document.getElementById('dc-loading').style.display = 'none';
+      document.getElementById('dc-content').style.display = 'block';
+
+      DC_FD = DC;
+      renderDcTable(1);
+    })
+    .catch(err => {
+      document.getElementById('dc-load-msg').textContent = '⚠ ' + err.message;
+      document.getElementById('dc-pbar').style.background = '#FF4D4D';
+    });
+}
+
+function onDcSubChange() {
+  const sub = document.getElementById('dc-sub').value;
+  const feedSel = document.getElementById('dc-feed');
+  feedSel.innerHTML = '<option value="">ALL FEEDERS</option>';
+  const feeds = sub && DC_SUB_FEED_MAP[sub]
+    ? [...DC_SUB_FEED_MAP[sub]].sort()
+    : [...new Set(DC.map(r => r.FEEDER).filter(Boolean))].sort();
+  const frag = document.createDocumentFragment();
+  feeds.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; frag.appendChild(o); });
+  feedSel.appendChild(frag);
+}
+
+function dcFilter() {
+  const q = (document.getElementById('dc-search').value || '').trim().toLowerCase();
+  const sub = document.getElementById('dc-sub').value;
+  const feed = document.getElementById('dc-feed').value;
+  const lmv = document.getElementById('dc-lmv').value;
+  const amin = parseFloat(document.getElementById('dc-amt-min').value) || 0;
+  const amax = parseFloat(document.getElementById('dc-amt-max').value) || Infinity;
+
+  DC_FD = DC.filter(r => {
+    if (sub && r.SUBSTATION !== sub) return false;
+    if (feed && r.FEEDER !== feed) return false;
+    if (lmv && r.LMV !== lmv) return false;
+    if (r.OUTSTANDING < amin || r.OUTSTANDING > amax) return false;
+    if (q) {
+      const acct = String(r.ACCT_ID || '');
+      const mob = String(r.MOBILE_NO || '');
+      const name = (r.NAME || '').toLowerCase();
+      const meter = (r.METER_NO || '').toLowerCase();
+      if (!acct.includes(q) && !mob.includes(q) && !name.includes(q) && !meter.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const filtOut = DC_FD.reduce((s, r) => s + r.OUTSTANDING, 0);
+  document.getElementById('dc-filt-amt').textContent = '₹' + Math.round(filtOut).toLocaleString();
+  document.getElementById('dc-total2').textContent = DC_FD.length.toLocaleString();
+  renderDcTable(1);
+}
+
+function resetDcFilters() {
+  document.getElementById('dc-search').value = '';
+  document.getElementById('dc-sub').value = '';
+  document.getElementById('dc-feed').value = '';
+  document.getElementById('dc-lmv').value = '';
+  document.getElementById('dc-amt-min').value = '';
+  document.getElementById('dc-amt-max').value = '';
+  onDcSubChange();
+  DC_FD = DC;
+  const totalOut = DC.reduce((s, r) => s + r.OUTSTANDING, 0);
+  document.getElementById('dc-filt-amt').textContent = '₹' + Math.round(totalOut).toLocaleString();
+  document.getElementById('dc-total2').textContent = DC.length.toLocaleString();
+  renderDcTable(1);
+}
+
+function renderDcTable(page) {
+  dcPage = page;
+  const slice = DC_FD.slice((page - 1) * PS, page * PS);
+  document.getElementById('dc-shown').textContent = DC_FD.length.toLocaleString();
+  document.getElementById('dc-tbody').innerHTML = slice.map(r => {
+    const mapUrl = (r.LAT && r.LON) ? 'https://www.google.com/maps?q=' + r.LAT + ',' + r.LON : '';
+    const date = r.DATE_DC ? (typeof r.DATE_DC === 'string' ? r.DATE_DC.split('T')[0] : String(r.DATE_DC).split('T')[0]) : '';
+    const outstanding = parseFloat(r.OUTSTANDING) || 0;
+    const outColor = outstanding > 100000 ? '#FF4D4D' : outstanding > 10000 ? '#F5A623' : 'var(--text)';
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px">${date}</td>
+      <td style="font-family:var(--fh);color:var(--accent2)">${r.ACCT_ID}</td>
+      <td style="font-weight:500">${r.NAME}</td>
+      <td>${r.MOBILE_NO}</td>
+      <td style="font-size:11px;color:var(--muted)">${r.METER_NO}</td>
+      <td><span class="badge b-gov">${r.LMV}</span></td>
+      <td style="font-family:var(--fh);font-weight:700;color:${outColor}">₹${Math.round(outstanding).toLocaleString()}</td>
+      <td>${r.SUBSTATION}</td>
+      <td>${r.FEEDER}</td>
+      <td>${mapUrl ? `<a class="ml" href="${mapUrl}" target="_blank">📍 MAP</a>` : ''}</td>
+    </tr>`;
+  }).join('');
+  rp('dc-pg', page, Math.ceil(DC_FD.length / PS), p => renderDcTable(p));
+}
+
+function expDcX() {
+  if (!DC_FD.length) return alert('No data.');
+  const ws = XLSX.utils.json_to_sheet(DC_FD);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Disconnected');
+  XLSX.writeFile(wb, 'disconnected_' + Date.now() + '.xlsx');
+}
+function expDcC() {
+  if (!DC_FD.length) return alert('No data.');
+  const ws = XLSX.utils.json_to_sheet(DC_FD);
+  const csv = XLSX.utils.sheet_to_csv(ws);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'disconnected_' + Date.now() + '.csv'; a.click();
 }
 
 </script>
