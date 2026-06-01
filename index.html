@@ -268,7 +268,7 @@ select option{background:#111920;}
       <button class="btn btn-out" onclick="expC()">⬇ EXPORT CSV</button>
       <button class="btn" style="background:var(--card);border:1px solid var(--border);color:var(--text)" onclick="rf()">↺ RESET</button>
     </div>
-    <div class="tw"><table><thead><tr><th>ACCT ID</th><th>NAME</th><th>MOBILE</th><th>CATEGORY</th><th>LOAD</th><th>SUBSTATION</th><th>FEEDER</th><th>MAP</th></tr></thead><tbody id="ftb"></tbody></table></div>
+    <div class="tw"><table><thead><tr><th>S.NO</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th><th>CATEGORY</th><th>LOAD</th><th>SUBSTATION</th><th>FEEDER</th><th>MAP</th></tr></thead><tbody id="ftb"></tbody></table></div>
     <div class="pg" id="fpg"></div>
   </div>
 
@@ -340,7 +340,7 @@ select option{background:#111920;}
     <div id="nb-results" style="display:none">
       <div class="tw">
         <table>
-          <thead><tr><th>DIST</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th><th>CATEGORY</th><th>SUBSTATION</th><th>FEEDER</th><th>ADDRESS</th><th>MAP</th></tr></thead>
+          <thead><tr><th>S.NO</th><th>DIST</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th><th>CATEGORY</th><th>SUBSTATION</th><th>FEEDER</th><th>ADDRESS</th><th>MAP</th></tr></thead>
           <tbody id="nb-tbody"></tbody>
         </table>
       </div>
@@ -474,7 +474,7 @@ select option{background:#111920;}
         <table>
           <thead>
             <tr>
-              <th>DATE OF DC</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th>
+              <th>S.NO</th><th>DATE OF DC</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th>
               <th>METER NO</th><th>LMV</th><th>OUTSTANDING</th><th>SUBSTATION</th><th>FEEDER</th><th>MAP</th>
             </tr>
           </thead>
@@ -535,7 +535,7 @@ select option{background:#111920;}
         <div id="dc-nb-results" style="display:none">
           <div class="tw">
             <table>
-              <thead><tr><th>DIST</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th><th>OUTSTANDING</th><th>ATR</th><th>SUBSTATION</th><th>FEEDER</th><th>MAP</th></tr></thead>
+              <thead><tr><th>S.NO</th><th>DIST</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th><th>OUTSTANDING</th><th>ATR</th><th>SUBSTATION</th><th>FEEDER</th><th>MAP</th></tr></thead>
               <tbody id="dc-nb-tbody"></tbody>
             </table>
           </div>
@@ -844,7 +844,7 @@ function af(){
 }
 function rft(page){
   const sl2=FD.slice((page-1)*PS,page*PS);
-  document.getElementById('ftb').innerHTML=sl2.map(r=>`<tr><td style="font-family:var(--fh);color:var(--accent2)">${r.ACCT_ID}</td><td style="font-weight:500">${r.NAME||''}</td><td>${r.MOBILE_NO||''}</td><td>${cb(r.CATEGORY)}</td><td style="color:var(--accent);font-family:var(--fh)">${r.LOAD||''}</td><td>${r.SUBSTATION||''}</td><td>${r.FEEDER||''}</td><td>${(r.LAT&&r.LON)?`<a class="ml" href="https://www.google.com/maps?q=${r.LAT},${r.LON}" target="_blank">📍 MAP</a>`:''}</td></tr>`).join('');
+  document.getElementById('ftb').innerHTML=sl2.map((r,i)=>`<tr><td style="font-family:var(--fh);color:var(--muted);font-size:11px">${(page-1)*PS+i+1}</td><td style="font-family:var(--fh);color:var(--accent2)">${r.ACCT_ID}</td><td style="font-weight:500">${r.NAME||''}</td><td>${r.MOBILE_NO||''}</td><td>${cb(r.CATEGORY)}</td><td style="color:var(--accent);font-family:var(--fh)">${r.LOAD||''}</td><td>${r.SUBSTATION||''}</td><td>${r.FEEDER||''}</td><td>${(r.LAT&&r.LON)?`<a class="ml" href="https://www.google.com/maps?q=${r.LAT},${r.LON}" target="_blank">📍 MAP</a>`:''}</td></tr>`).join('');
   rp('fpg',page,Math.ceil(FD.length/PS),p=>rft(p));
 }
 function rf(){document.getElementById('fs').value='';document.getElementById('ff').value='';document.getElementById('fc').value='';document.getElementById('fln').value='';document.getElementById('flx').value='';af();}
@@ -1156,6 +1156,7 @@ function renderNearbyTable(page) {
     const dist = r._dist < 1 ? (r._dist*1000).toFixed(0)+' m' : r._dist.toFixed(2)+' km';
     const mapUrl = 'https://www.google.com/maps?q=' + r.LAT + ',' + r.LON;
     return `<tr>
+      <td style="font-family:var(--fh);color:var(--muted);font-size:11px">${(page-1)*PS+slice.indexOf(r)+1}</td>
       <td style="font-family:var(--fh);color:var(--accent);font-weight:700">${dist}</td>
       <td style="font-family:var(--fh);color:var(--accent2)">${r.ACCT_ID}</td>
       <td style="font-weight:500">${r.NAME||''}</td>
@@ -1541,6 +1542,7 @@ function renderDcTable(page) {
     const outColor = outstanding > 100000 ? '#FF4D4D' : outstanding > 10000 ? '#F5A623' : 'var(--text)';
     const acctId = String(r.ACCT_ID);
     return `<tr id="dc-row-${acctId}">
+      <td style="font-family:var(--fh);color:var(--muted);font-size:11px">${(page-1)*PS + slice.indexOf(r) + 1}</td>
       <td style="color:var(--muted);font-size:11px">${date}</td>
       <td style="font-family:var(--fh);color:var(--accent2);cursor:pointer;text-decoration:underline;text-underline-offset:3px" onclick="openDcDetail('${acctId}')" title="Click to view details">${r.ACCT_ID}</td>
       <td style="font-weight:500;cursor:pointer" onclick="openDcDetail('${acctId}')">${r.NAME}</td>
@@ -1689,6 +1691,7 @@ function renderDcNbTable(page) {
     const outstanding = Math.round(r.OUTSTANDING || 0);
     const outColor = outstanding > 100000 ? '#FF4D4D' : outstanding > 10000 ? '#F5A623' : 'var(--text)';
     return `<tr>
+      <td style="font-family:var(--fh);color:var(--muted);font-size:11px">${(page-1)*PS+slice.indexOf(r)+1}</td>
       <td style="font-family:var(--fh);color:var(--accent);font-weight:700">${dist}</td>
       <td style="font-family:var(--fh);color:var(--accent2)">${r.ACCT_ID}</td>
       <td style="font-weight:500">${r.NAME || ''}</td>
@@ -1760,6 +1763,10 @@ function openDcDetail(acctId) {
   const outstanding = Math.round(parseFloat(r.OUTSTANDING) || 0);
   const outColor = outstanding > 100000 ? '#FF4D4D' : outstanding > 10000 ? '#F5A623' : 'var(--text)';
 
+  // Ensure correct LAT/LON for display (LAT~25.xx, LON~78.xx for Jhansi)
+  let dispLat = r.LAT, dispLon = r.LON;
+  if (parseFloat(dispLat) > 50) { dispLat = r.LON; dispLon = r.LAT; }
+  
   document.getElementById('modal-grid').innerHTML = `
     <div class="modal-field"><div class="lbl">DATE OF DISCONNECTION</div><div class="val">${dateStr || '-'}</div></div>
     <div class="modal-field"><div class="lbl">MOBILE NO</div><div class="val">${r.MOBILE_NO || '-'}</div></div>
@@ -1770,8 +1777,8 @@ function openDcDetail(acctId) {
     <div class="modal-field"><div class="lbl">SUBSTATION</div><div class="val">${r.SUBSTATION || '-'}</div></div>
     <div class="modal-field"><div class="lbl">FEEDER</div><div class="val">${r.FEEDER || '-'}</div></div>
     <div class="modal-field" style="grid-column:span 2"><div class="lbl">ADDRESS</div><div class="val">${r.ADDRESS || '-'}</div></div>
-    <div class="modal-field"><div class="lbl">LATITUDE</div><div class="val">${r.LAT || '-'}</div></div>
-    <div class="modal-field"><div class="lbl">LONGITUDE</div><div class="val">${r.LON || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">LATITUDE</div><div class="val">${dispLat || '-'}</div></div>
+    <div class="modal-field"><div class="lbl">LONGITUDE</div><div class="val">${dispLon || '-'}</div></div>
   `;
 
   // ATR section
@@ -1792,10 +1799,12 @@ function openDcDetail(acctId) {
   document.getElementById('detail-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 
-  // Load nearby disconnected consumers if LAT/LON available
-  if (r.LAT && r.LON) {
+  // Load nearby - use corrected LAT/LON (LAT~25.xx, LON~78.xx for Jhansi)
+  let nearLat = parseFloat(r.LAT), nearLon = parseFloat(r.LON);
+  if (nearLat > 50) { const tmp = nearLat; nearLat = nearLon; nearLon = tmp; }
+  if (nearLat && nearLon && nearLat > 20 && nearLat < 30) {
     document.getElementById('modal-nearby-section').style.display = 'block';
-    loadModalNearby(parseFloat(r.LAT), parseFloat(r.LON));
+    loadModalNearby(nearLat, nearLon);
   } else {
     document.getElementById('modal-nearby-section').style.display = 'none';
   }
@@ -2053,7 +2062,11 @@ function loadModalNearby(lat, lon) {
   // Find nearby DC consumers excluding current one
   const nearby = DC
     .filter(r => r.LAT && r.LON && String(r.ACCT_ID) !== modalCurrentAcct)
-    .map(r => ({ ...r, _dist: haversine(modalNearbyLat, modalNearbyLon, parseFloat(r.LAT), parseFloat(r.LON)) }))
+    .map(r => {
+      let rLat = parseFloat(r.LAT), rLon = parseFloat(r.LON);
+      if (rLat > 50) { const tmp = rLat; rLat = rLon; rLon = tmp; }
+      return { ...r, _lat: rLat, _lon: rLon, _dist: haversine(modalNearbyLat, modalNearbyLon, rLat, rLon) };
+    })
     .filter(r => r._dist <= radius)
     .sort((a, b) => a._dist - b._dist)
     .slice(0, 10); // show max 10
@@ -2082,7 +2095,7 @@ function loadModalNearby(lat, lon) {
             const dist = r._dist < 1 ? (r._dist*1000).toFixed(0)+' m' : r._dist.toFixed(2)+' km';
             const out = Math.round(r.OUTSTANDING || 0);
             const outColor = out > 100000 ? '#FF4D4D' : out > 10000 ? '#F5A623' : 'var(--text)';
-            const mapUrl = 'https://www.google.com/maps?q=' + r.LAT + ',' + r.LON;
+            const mapUrl = 'https://www.google.com/maps?q=' + r._lat + ',' + r._lon;
             return \`<tr style="border-bottom:1px solid #0E1A22;cursor:pointer" onclick="closeModal();setTimeout(()=>openDcDetail('\${r.ACCT_ID}'),100)" title="Click to open details">
               <td style="padding:8px 12px;font-family:var(--fh);color:var(--accent);font-weight:700">\${dist}</td>
               <td style="padding:8px 12px;font-family:var(--fh);color:var(--accent2)">\${r.ACCT_ID}</td>
