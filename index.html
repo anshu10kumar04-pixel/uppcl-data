@@ -361,8 +361,7 @@ select option{background:#111920;}
           <thead>
             <tr>
               <th>DATE OF DC</th><th>ACCT ID</th><th>NAME</th><th>MOBILE</th>
-              <th>METER NO</th><th>LMV</th><th>OUTSTANDING</th><th>ATR STATUS</th>
-              <th>SUBSTATION</th><th>FEEDER</th><th>MAP</th>
+              <th>METER NO</th><th>LMV</th><th>OUTSTANDING</th><th>SUBSTATION</th><th>FEEDER</th><th>MAP</th>
             </tr>
           </thead>
           <tbody id="dc-tbody"></tbody>
@@ -1342,16 +1341,6 @@ function renderDcTable(page) {
       <td style="font-size:11px;color:var(--muted)">${r.METER_NO}</td>
       <td><span class="badge b-gov">${r.LMV}</span></td>
       <td style="font-family:var(--fh);font-weight:700;color:${outColor}">₹${Math.round(outstanding).toLocaleString()}</td>
-      <td>
-        <select class="atr-select ${atrClass}" id="atr-${acctId}"
-          onchange="setAtr('${acctId}', this.value, this)">
-          <option value="DISCONNECTED" ${r.ATR_STATUS==='DISCONNECTED'?'selected':''}>🔴 DISCONNECTED</option>
-          <option value="PAID"         ${r.ATR_STATUS==='PAID'?'selected':''}>✅ PAID</option>
-          <option value="LOCK"         ${r.ATR_STATUS==='LOCK'?'selected':''}>🔒 LOCK</option>
-          <option value="THEFT"        ${r.ATR_STATUS==='THEFT'?'selected':''}>⚠️ THEFT</option>
-          <option value="OTHER"        ${r.ATR_STATUS==='OTHER'?'selected':''}>📋 OTHER</option>
-        </select>
-      </td>
       <td>${r.SUBSTATION}</td>
       <td>${r.FEEDER}</td>
       <td>${mapUrl ? `<a class="ml" href="${mapUrl}" target="_blank">📍 MAP</a>` : ''}</td>
