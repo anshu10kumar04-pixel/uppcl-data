@@ -119,6 +119,31 @@ select option{background:#111920;}
 .atr-other{background:#1A1A2A;color:#8888FF;border-color:#8888FF55;}
 .atr-saved{animation:atrpop .3s ease;}
 @keyframes atrpop{0%{transform:scale(1.2);}100%{transform:scale(1);}}
+/* Login Screen */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:48px 40px;width:100%;max-width:420px;text-align:center;}
+.login-logo{width:56px;height:56px;background:var(--accent);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 20px;}
+.login-title{font-family:var(--fh);font-size:28px;font-weight:700;letter-spacing:2px;margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--muted);letter-spacing:1px;margin-bottom:32px;}
+.role-tabs{display:flex;gap:0;background:#0C1419;border-radius:10px;padding:4px;margin-bottom:24px;}
+.role-tab{flex:1;font-family:var(--fh);font-size:13px;font-weight:600;letter-spacing:1px;padding:10px;border-radius:8px;cursor:pointer;color:var(--muted);transition:all .2s;border:none;background:transparent;}
+.role-tab.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px #00000044;}
+.pin-display{display:flex;justify-content:center;gap:10px;margin-bottom:20px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .2s;}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);}
+.pin-dot.error{background:#FF4D4D;border-color:#FF4D4D;animation:shake .3s;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.pin-btn{background:#0C1419;border:1px solid var(--border);border-radius:12px;padding:16px;font-family:var(--fh);font-size:20px;font-weight:700;color:var(--text);cursor:pointer;transition:all .15s;}
+.pin-btn:hover{background:var(--border);border-color:var(--accent);}
+.pin-btn:active{transform:scale(.95);}
+.pin-clear{background:transparent;border:1px solid var(--border);border-radius:12px;padding:16px;font-family:var(--fh);font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;}
+.pin-clear:hover{border-color:#FF4D4D;color:#FF4D4D;}
+.login-error{color:#FF4D4D;font-size:12px;font-family:var(--fh);letter-spacing:1px;min-height:18px;margin-bottom:8px;}
+.role-badge{display:inline-block;padding:3px 10px;border-radius:5px;font-size:10px;font-weight:700;font-family:var(--fh);letter-spacing:1px;margin-left:8px;}
+.badge-admin{background:#F5A62322;color:var(--accent);}
+.badge-user{background:#00C4FF22;color:var(--accent2);}
+
 /* Detail Modal */
 .modal-overlay{position:fixed;inset:0;background:#000000CC;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
 .modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px #000;}
@@ -143,16 +168,66 @@ select option{background:#111920;}
 <body>
 <div id="loading" style="display:none"><div class="spinner"></div><div class="lt" id="lt">LOADING…</div><div class="pb"><div class="pf" id="pf" style="width:0%"></div></div></div>
 <div class="toast" id="toast">✓ Link Copied!</div>
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">⚡</div>
+    <div class="login-title">UPP<span style="color:var(--accent)">CL</span> TOOL</div>
+    <div class="login-sub">CONSUMER DATA INTELLIGENCE · JHANSI</div>
+
+    <!-- Role selector -->
+    <div class="role-tabs">
+      <button class="role-tab active" onclick="setLoginRole('admin')" id="tab-admin">👑 ADMIN</button>
+      <button class="role-tab" onclick="setLoginRole('user')" id="tab-user">👤 USER</button>
+    </div>
+
+    <!-- PIN dots -->
+    <div class="pin-display" id="pin-display">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+
+    <!-- Error message -->
+    <div class="login-error" id="login-error"></div>
+
+    <!-- PIN pad -->
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-clear" onclick="pinClear()">CLR</button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn" onclick="pinBackspace()">⌫</button>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);line-height:1.8">
+      👑 Admin: Full access · ATR update · Export<br/>
+      👤 User: View only · No export · No ATR edit
+    </div>
+  </div>
+</div>
+
 <div class="header">
   <div class="logo">
     <div class="logo-icon">⚡</div>
-    <div><div class="logo-text">UPP<span>CL</span> TOOL</div><div class="logo-sub">CONSUMER DATA INTELLIGENCE</div></div>
+    <div><div class="logo-text">UPP<span>CL</span> TOOL</div><div class="logo-sub">CONSUMER DATA INTELLIGENCE &nbsp;<span class="role-badge" id="role-indicator"></span></div></div>
   </div>
+  <div style="display:flex;align-items:center;gap:16px">
+  <button onclick="logout()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--fh);font-size:11px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;letter-spacing:1px;transition:all .2s" onmouseover="this.style.borderColor='#FF4D4D';this.style.color='#FF4D4D'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">⎋ LOGOUT</button>
   <div class="stats-bar" id="sbar" style="display:none">
     <div class="stat-chip">RECORDS <span class="val" id="s-tot">0</span></div>
     <div class="stat-chip">SUBSTATIONS <span class="val" id="s-sub">0</span></div>
     <div class="stat-chip">FEEDERS <span class="val" id="s-feed">0</span></div>
   </div>
+</div>
 </div>
 <div id="upload-screen">
   <label for="file-input">
@@ -1590,6 +1665,7 @@ function openDcDetail(acctId) {
 
   document.getElementById('detail-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
+
 }
 
 function openMainDetail(acctId) {
@@ -1643,6 +1719,7 @@ function updateModalAtrStyle() {
 
 function saveModalAtr() {
   if (!modalCurrentAcct || !modalIsDc) return;
+
   const newStatus = document.getElementById('modal-atr-select').value;
   const ind = document.getElementById('modal-save-ind');
 
@@ -1713,6 +1790,120 @@ function toggleSyncBar() {
   p.style.display = isHidden ? 'flex' : 'none';
 }
 
+
+
+// ─── LOGIN & ROLE ACCESS ─────────────────────────────────────────────────────
+// Change these PINs as needed
+const ADMIN_PIN = '0107';
+const USER_PIN  = '1234';
+
+let currentPin = '';
+let loginRole = 'admin';
+let CURRENT_ROLE = null; // 'admin' or 'user'
+
+function setLoginRole(role) {
+  loginRole = role;
+  document.getElementById('tab-admin').classList.toggle('active', role === 'admin');
+  document.getElementById('tab-user').classList.toggle('active', role === 'user');
+  pinReset();
+}
+
+function pinPress(digit) {
+  if (currentPin.length >= 4) return;
+  currentPin += digit;
+  updatePinDots();
+  if (currentPin.length === 4) setTimeout(checkPin, 150);
+}
+
+function pinBackspace() {
+  currentPin = currentPin.slice(0, -1);
+  updatePinDots();
+  document.getElementById('login-error').textContent = '';
+}
+
+function pinClear() {
+  pinReset();
+}
+
+function pinReset() {
+  currentPin = '';
+  updatePinDots(false);
+  document.getElementById('login-error').textContent = '';
+}
+
+function updatePinDots(error) {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pd' + i);
+    dot.classList.toggle('filled', i < currentPin.length);
+    dot.classList.toggle('error', error === true);
+  }
+}
+
+function checkPin() {
+  const correctPin = loginRole === 'admin' ? ADMIN_PIN : USER_PIN;
+  if (currentPin === correctPin) {
+    loginSuccess(loginRole);
+  } else {
+    updatePinDots(true);
+    document.getElementById('login-error').textContent = '✗ INCORRECT PIN — TRY AGAIN';
+    setTimeout(() => { pinReset(); }, 800);
+  }
+}
+
+function loginSuccess(role) {
+  CURRENT_ROLE = role;
+  sessionStorage.setItem('uppcl_role', role);
+  document.getElementById('login-screen').style.display = 'none';
+
+  // Set role badge
+  const badge = document.getElementById('role-indicator');
+  if (role === 'admin') {
+    badge.textContent = '👑 ADMIN';
+    badge.className = 'role-badge badge-admin';
+  } else {
+    badge.textContent = '👤 USER';
+    badge.className = 'role-badge badge-user';
+  }
+
+  applyRoleRestrictions(role);
+}
+
+function applyRoleRestrictions(role) {
+  if (role === 'user') {
+    // Only hide Google Sheet sync bar
+    const syncBar = document.getElementById('sync-bar-panel');
+    if (syncBar) syncBar.style.display = 'none';
+    // Hide the sync settings button
+    document.querySelectorAll('button').forEach(btn => {
+      if (btn.textContent.includes('SHEET SYNC SETTINGS')) btn.style.display = 'none';
+    });
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('uppcl_role');
+  CURRENT_ROLE = null;
+  currentPin = '';
+  loginRole = 'admin';
+  document.getElementById('tab-admin').classList.add('active');
+  document.getElementById('tab-user').classList.remove('active');
+  pinReset();
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// Check session on load (so refresh doesn't log out)
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('uppcl_role');
+  if (saved) {
+    loginSuccess(saved);
+  }
+});
+
+// Block ATR save for users in modal
+const _origSaveModalAtr = window.saveModalAtr;
+
+// Patch modal to hide ATR save for users
+const origOpenDcDetail = window.openDcDetail;
 
 </script>
 </body>
