@@ -857,6 +857,13 @@ html { scroll-behavior: smooth; }
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
+
+// Null-safe element getter
+function gel(id) { return document.getElementById(id); }
+function setText(id, val) { var el = gel(id); if(el) el.textContent = val; }
+function setHtml(id, val) { var el = gel(id); if(el) el.innerHTML = val; }
+function setStyle(id, prop, val) { var el = gel(id); if(el) el.style[prop] = val; }
+
 let D=[],FD=[],MAP=null,ML=null,SUB_FEED_MAP={};
 let DC=[], DC_SUB_FEED_MAP={};  // Disconnected consumers data
 
@@ -937,7 +944,7 @@ function ia(){
   // Fast select population using DocumentFragment
   function fastSelect(ids, items){
     ids.forEach(id=>{
-      const sel=document.getElementById(id);
+      const sel=gel(id);
       if(!sel) return;
       // Keep first option (ALL) and remove rest before adding
       while(sel.options.length > 1) sel.remove(1);
@@ -1117,21 +1124,35 @@ function autoFetch() {
   document.getElementById('loading').style.display = 'flex';
   sl('CONNECTING TO GITHUB…', 10);
 
-  // Load files sequentially to avoid memory issues
   const allData = [];
   let fileIdx = 0;
+
+  function fetchWithRetry(url, retries) {
+    return fetch(url)
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.text();
+      })
+      .catch(function(err) {
+        if (retries > 0) {
+          sl('RETRYING FILE ' + (fileIdx+1) + '…', 15 + fileIdx * 20);
+          return new Promise(function(resolve) { setTimeout(resolve, 2000); })
+            .then(function() { return fetchWithRetry(url, retries - 1); });
+        }
+        throw err;
+      });
+  }
 
   function loadNext() {
     if (fileIdx >= FILES.length) {
       try {
         sl('MERGING DATA…', 90);
-        D = allData.flat().filter(r => r && r.ACCT_ID);
-        console.log('Data loaded:', D.length, 'rows');
+        D = allData.flat().filter(function(r) { return r && r.ACCT_ID; });
         sl('BUILDING INDEX…', 96);
         ia();
         hl2();
       } catch(e) {
-        console.error('Error after load:', e.message, e.stack);
+        console.error('Error:', e.message);
         hl2();
         showFetchError(e.message);
       }
@@ -1139,29 +1160,22 @@ function autoFetch() {
     }
     const url = FILES[fileIdx];
     sl('LOADING ' + (fileIdx+1) + ' OF ' + FILES.length + '…', 15 + fileIdx * 20);
-    fetch(url)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed: ' + url.split('/').pop());
-        return res.text();
-      })
-      .then(text => {
+    fetchWithRetry(url, 3)
+      .then(function(text) {
         try {
           sl('PARSING ' + (fileIdx+1) + ' OF ' + FILES.length + '…', 20 + fileIdx * 20);
           const rows = fastParseCSV(text);
-          console.log('Parsed file', fileIdx+1, ':', rows.length, 'rows');
           allData.push(rows);
           fileIdx++;
           loadNext();
         } catch(e) {
-          console.error('Parse error:', e.message);
           hl2();
-          showFetchError('Parse error in file ' + (fileIdx+1) + ': ' + e.message);
+          showFetchError('Parse error file ' + (fileIdx+1) + ': ' + e.message);
         }
       })
-      .catch(err => { 
-        console.error('Fetch error:', err);
-        hl2(); 
-        showFetchError(err.message); 
+      .catch(function(err) {
+        hl2();
+        showFetchError('Network error loading file ' + (fileIdx+1) + '. Check internet connection and try again.');
       });
   }
 
@@ -1207,7 +1221,9 @@ function fastParseCSV(text) {
 function showFetchError(msg) {
   document.getElementById('upload-screen').style.display = 'flex';
   const p = document.querySelector('.upload-box p');
-  if (p) p.innerHTML = '<span style="color:#FF6B6B;font-size:13px">⚠ Auto-load failed: ' + msg + '</span><br/>You can still upload the file manually below.';
+  if (p) p.innerHTML = '<span style="color:#FF6B6B;font-size:13px">⚠ ' + msg + '</span><br/>' +
+    '<button onclick="autoFetch()" style="margin-top:12px;background:var(--accent);color:#000;font-family:var(--fh);font-size:13px;font-weight:700;padding:10px 24px;border-radius:8px;border:none;cursor:pointer;letter-spacing:1px">🔄 RETRY</button>' +
+    '<br/><span style="font-size:12px;color:var(--muted)">or upload file manually below</span>';
   console.error('AutoFetch error:', msg);
 }
 
@@ -1217,6 +1233,7 @@ let NBM = null, NBL = null, NBCenter = null, NBData = [], nbPage = 1;
 let pickMode = false, NBCircle = null, NBCenterMarker = null;
 
 function initNearbyMap() {
+  if(!gel('nb-map')) return;
   NBM = L.map('nb-map').setView([25.45, 78.57], 13);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '© OSM, © CARTO', maxZoom: 19
@@ -1228,31 +1245,32 @@ function initNearbyMap() {
     if (!pickMode) return;
     pickMode = false;
     NBM.getContainer().style.cursor = '';
-    document.getElementById('nb-instruction').style.display = 'none';
-    document.getElementById('nb-map-cont').style.display = 'block';
+    setStyle('nb-instruction','display','none');
+    setStyle('nb-map-cont','display','block');
     setNearbyCenter(e.latlng.lat, e.latlng.lng);
   });
 }
 
 function useMyLocation() {
+  if(!gel('nb-radius')) return;
   if (!navigator.geolocation) return alert('GPS not supported in your browser.');
-  document.getElementById('nb-instruction').innerHTML = '<div style="font-size:40px">📡</div><div style="font-family:var(--fh);font-size:16px;color:var(--accent);margin-top:12px;letter-spacing:1px">GETTING YOUR LOCATION…</div>';
+  var _nbInst=gel('nb-instruction');if(_nbInst)_nbInst.innerHTML='<div style="font-size:40px">📡</div><div style="font-family:var(--fh);font-size:16px;color:var(--accent);margin-top:12px;letter-spacing:1px">GETTING YOUR LOCATION…</div>';
   navigator.geolocation.getCurrentPosition(
     pos => {
-      document.getElementById('nb-instruction').style.display = 'none';
-      document.getElementById('nb-map-cont').style.display = 'block';
+      setStyle('nb-instruction','display','none');
+      setStyle('nb-map-cont','display','block');
       if (!NBM) initNearbyMap();
       setTimeout(() => setNearbyCenter(pos.coords.latitude, pos.coords.longitude), 100);
     },
     err => {
-      document.getElementById('nb-instruction').innerHTML = '<div style="font-size:40px">⚠️</div><div style="font-family:var(--fh);font-size:16px;color:#FF6B6B;margin-top:12px">Could not get GPS location.<br/>Please allow location access or pick on map.</div>';
+      var _nbInst=gel('nb-instruction');if(_nbInst)_nbInst.innerHTML='<div style="font-size:40px">⚠️</div><div style="font-family:var(--fh);font-size:16px;color:#FF6B6B;margin-top:12px">Could not get GPS location.<br/>Please allow location access or pick on map.</div>';
     }
   );
 }
 
 function pickOnMap() {
-  document.getElementById('nb-instruction').style.display = 'none';
-  document.getElementById('nb-map-cont').style.display = 'block';
+  setStyle('nb-instruction','display','none');
+  setStyle('nb-map-cont','display','block');
   if (!NBM) initNearbyMap();
   pickMode = true;
   setTimeout(() => {
@@ -1269,13 +1287,13 @@ function setNearbyCenter(lat, lon) {
   NBCenter = { lat, lon };
 
   // Update coord display
-  document.getElementById('nb-coords').style.display = 'flex';
-  document.getElementById('nb-lat-display').textContent = 'LAT: ' + lat.toFixed(6);
-  document.getElementById('nb-lon-display').textContent = 'LON: ' + lon.toFixed(6);
+  setStyle('nb-coords','display','flex');
+  gel('nb-lat-display').textContent = 'LAT: ' + lat.toFixed(6);
+  gel('nb-lon-display').textContent = 'LON: ' + lon.toFixed(6);
 
   // Draw on map
   NBL.clearLayers();
-  const radius = parseFloat(document.getElementById('nb-radius').value) * 1000; // km to metres
+  const radius = parseFloat(gel('nb-radius').value) * 1000; // km to metres
 
   // Remove old circle & center marker
   if (NBCircle) NBM.removeLayer(NBCircle);
@@ -1311,10 +1329,11 @@ function haversine(lat1, lon1, lat2, lon2) {
 }
 
 function findNearby(lat, lon) {
-  const radius = parseFloat(document.getElementById('nb-radius').value);
-  const cat = document.getElementById('nb-cat').value;
-  const sub = document.getElementById('nb-sub').value;
-  const feed = document.getElementById('nb-feed').value;
+  if(!gel('nb-radius')) return;
+  const radius = parseFloat(gel('nb-radius').value);
+  const cat = gel('nb-cat').value;
+  const sub = gel('nb-sub').value;
+  const feed = gel('nb-feed').value;
 
   NBData = D
     .filter(r => r.LAT && r.LON)
@@ -1325,7 +1344,7 @@ function findNearby(lat, lon) {
     .filter(r => !feed || r.FEEDER === feed)
     .sort((a, b) => a._dist - b._dist);
 
-  document.getElementById('nb-count-display').textContent = NBData.length + ' CONSUMERS FOUND';
+  gel('nb-count-display').textContent = NBData.length + ' CONSUMERS FOUND';
 
   // Plot on map
   NBL.clearLayers();
@@ -1351,18 +1370,19 @@ function findNearby(lat, lon) {
 
   // Show results
   if (NBData.length > 0) {
-    document.getElementById('nb-results').style.display = 'block';
+    setStyle('nb-results','display','block');
     renderNearbyTable(1);
   } else {
-    document.getElementById('nb-results').style.display = 'none';
-    document.getElementById('nb-count-display').textContent = '0 CONSUMERS IN RANGE';
+    setStyle('nb-results','display','none');
+    gel('nb-count-display').textContent = '0 CONSUMERS IN RANGE';
   }
 }
 
 function renderNearbyTable(page) {
+  if(!gel('nb-tbody')) return;
   nbPage = page;
   const slice = NBData.slice((page-1)*PS, page*PS);
-  document.getElementById('nb-tbody').innerHTML = slice.map(r => {
+  gel('nb-tbody').innerHTML = slice.map(r => {
     const dist = r._dist < 1 ? (r._dist*1000).toFixed(0)+' m' : r._dist.toFixed(2)+' km';
     const mapUrl = 'https://www.google.com/maps?q=' + r.LAT + ',' + r.LON;
     return `<tr>
@@ -1382,17 +1402,18 @@ function renderNearbyTable(page) {
 }
 
 function clearNearby() {
+  if(!gel('nb-radius')) return;
   NBCenter = null; NBData = []; nbPage = 1; pickMode = false;
   if (NBL) NBL.clearLayers();
   if (NBCircle) { NBM.removeLayer(NBCircle); NBCircle = null; }
   if (NBCenterMarker) { NBM.removeLayer(NBCenterMarker); NBCenterMarker = null; }
-  document.getElementById('nb-sub').value = '';
-  document.getElementById('nb-feed').value = '';
-  document.getElementById('nb-cat').value = '';
-  document.getElementById('nb-coords').style.display = 'none';
-  document.getElementById('nb-results').style.display = 'none';
-  document.getElementById('nb-instruction').style.display = 'block';
-  document.getElementById('nb-instruction').innerHTML = '<div style="font-size:52px;margin-bottom:16px">📡</div><div style="font-family:var(--fh);font-size:20px;letter-spacing:1px;margin-bottom:8px">FIND NEARBY CONSUMERS</div><div style="font-size:13px;line-height:1.8">Click <strong style="color:var(--accent)">USE MY GPS LOCATION</strong> to find consumers near you<br/>or <strong style="color:var(--accent2)">CLICK ON MAP TO PICK LOCATION</strong> to select any point</div>';
+  gel('nb-sub').value = '';
+  gel('nb-feed').value = '';
+  gel('nb-cat').value = '';
+  setStyle('nb-coords','display','none');
+  setStyle('nb-results','display','none');
+  setStyle('nb-instruction','display','block');
+  var _nbInst=gel('nb-instruction');if(_nbInst)_nbInst.innerHTML='<div style="font-size:52px;margin-bottom:16px">📡</div><div style="font-family:var(--fh);font-size:20px;letter-spacing:1px;margin-bottom:8px">FIND NEARBY CONSUMERS</div><div style="font-size:13px;line-height:1.8">Click <strong style="color:var(--accent)">USE MY GPS LOCATION</strong> to find consumers near you<br/>or <strong style="color:var(--accent2)">CLICK ON MAP TO PICK LOCATION</strong> to select any point</div>';
 }
 
 function expNearbyX() {
@@ -1403,7 +1424,7 @@ function expNearbyX() {
   XLSX.writeFile(wb, 'uppcl_nearby_' + Date.now() + '.xlsx');
 }
 function reapplyNearby() {
-  if (NBCenter) findNearby(NBCenter.lat, NBCenter.lon);
+  if (NBCenter && gel('nb-radius')) findNearby(NBCenter.lat, NBCenter.lon);
 }
 
 function expNearbyC() {
@@ -1496,7 +1517,7 @@ function loadDC() {
       // Summary stats
       const total = DC.length;
       const totalOut = DC.reduce((s, r) => s + r.OUTSTANDING, 0);
-      document.getElementById('dc-total').textContent = total.toLocaleString();
+      setText('dc-total', total.toLocaleString());
 
       pbar.style.width = '100%';
       // Init ATR_STATUS field (default: DISCONNECTED)
