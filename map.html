@@ -4,73 +4,53 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>UPPCL Consumer Map</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;width:100%;overflow:hidden;}
-body{font-family:'Google Sans',Roboto,sans-serif;display:flex;flex-direction:column;}
-#map{flex:1;width:100%;}
+html,body{height:100%;width:100%;overflow:hidden;font-family:'Segoe UI',Roboto,sans-serif;}
+#map{width:100%;height:100%;position:absolute;top:0;left:0;}
 
 /* Sidebar */
-.sidebar{position:fixed;right:0;top:0;bottom:0;width:320px;background:#fff;box-shadow:-2px 0 12px rgba(0,0,0,0.15);display:flex;flex-direction:column;z-index:1000;}
-.sidebar-header{padding:14px 16px;background:#fff;border-bottom:1px solid #e8eaed;}
-.sidebar-header h3{font-size:15px;font-weight:600;color:#202124;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.sidebar-header p{font-size:12px;color:#5f6368;line-height:1.4;}
-.close-btn{position:absolute;top:10px;right:10px;background:transparent;border:none;cursor:pointer;font-size:18px;color:#5f6368;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+.sidebar{position:fixed;right:0;top:0;bottom:0;width:300px;background:#fff;box-shadow:-2px 0 16px rgba(0,0,0,0.15);display:flex;flex-direction:column;z-index:1000;}
+.topbar{padding:12px 14px;background:#fff;border-bottom:1px solid #e8eaed;flex-shrink:0;}
+.topbar h3{font-size:13px;font-weight:700;color:#202124;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+.topbar p{font-size:11px;color:#5f6368;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.close-btn{position:absolute;top:10px;right:10px;background:transparent;border:1px solid #dadce0;cursor:pointer;font-size:16px;color:#5f6368;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
 .close-btn:hover{background:#f1f3f4;}
-
-.legend{display:flex;gap:12px;padding:8px 16px;background:#f8f9fa;border-bottom:1px solid #e8eaed;flex-wrap:wrap;}
-.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:#5f6368;}
-.dot{width:10px;height:10px;border-radius:50%;}
-
+.legend{display:flex;gap:10px;padding:7px 14px;background:#f8f9fa;border-bottom:1px solid #e8eaed;flex-wrap:wrap;flex-shrink:0;}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:#5f6368;}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,0.2);}
 .list{overflow-y:auto;flex:1;}
-.item{padding:12px 16px;border-bottom:1px solid #f1f3f4;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.item{padding:10px 14px;border-bottom:1px solid #f1f3f4;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;transition:background .1s;}
 .item:hover{background:#f8f9fa;}
-.item.main-item{background:#FFF8E7;border-left:3px solid #F5A623;}
-.item.near-item{border-left:3px solid transparent;}
-.item.near-item:hover{background:#f8f9fa;}
-.item-left{flex:1;min-width:0;}
-.item-name{font-size:13px;font-weight:600;color:#202124;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.item-sub{font-size:11px;color:#5f6368;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.item-right{text-align:right;flex-shrink:0;}
-.item-out{font-size:12px;font-weight:700;}
-.item-atr{font-size:10px;margin-top:2px;padding:1px 6px;border-radius:10px;display:inline-block;}
-.item-dist{font-size:10px;color:#5f6368;margin-top:3px;}
-
-/* Popup styling */
-.leaflet-popup-content-wrapper{border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);padding:0;overflow:hidden;}
-.leaflet-popup-content{margin:0;min-width:220px;}
-.popup-inner{padding:12px 14px;}
-.popup-name{font-size:14px;font-weight:700;color:#202124;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #f1f3f4;}
-.popup-row{display:flex;justify-content:space-between;font-size:12px;color:#5f6368;margin-bottom:3px;}
-.popup-row span:last-child{font-weight:600;color:#202124;}
-.popup-addr{font-size:11px;color:#80868B;margin-top:6px;padding-top:6px;border-top:1px solid #f1f3f4;}
-.popup-dist{font-size:11px;color:#1a73e8;margin-top:4px;font-weight:500;}
-
-/* Mobile: bottom sheet instead of sidebar */
+.item.main{border-left:3px solid #F9AB00;background:#FFF8E1;}
+.item.near{border-left:3px solid #EA4335;}
+.item-name{font-size:12px;font-weight:700;color:#202124;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.item-sub{font-size:10px;color:#5f6368;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.item-out{font-size:12px;font-weight:700;text-align:right;}
+.item-dist{font-size:10px;color:#5f6368;margin-top:2px;text-align:right;}
+.no-data{text-align:center;padding:40px 20px;color:#5f6368;}
+.map-wrapper{position:absolute;left:0;top:0;right:300px;bottom:0;}
 @media(max-width:600px){
-  .sidebar{width:100%;height:45vh;top:auto;right:0;left:0;box-shadow:0 -4px 16px rgba(0,0,0,.15);border-radius:16px 16px 0 0;}
-  #map{height:55vh;flex:none;}
-  body{flex-direction:column;}
+  .sidebar{width:100%;height:42vh;top:auto;bottom:0;left:0;right:0;border-radius:16px 16px 0 0;}
+  .map-wrapper{right:0;bottom:42vh;}
 }
 </style>
 </head>
 <body>
-<div id="map"></div>
-
+<div class="map-wrapper" id="map-wrapper">
+  <div id="map"></div>
+</div>
 <div class="sidebar">
-  <button class="close-btn" onclick="window.close()" title="Close">✕</button>
-  <div class="sidebar-header">
+  <button class="close-btn" onclick="window.close()">✕</button>
+  <div class="topbar">
     <h3 id="sel-name">📍 UPPCL Consumer Map</h3>
-    <p id="sel-detail">Click any pin to see consumer details</p>
+    <p id="sel-detail">Click any pin to see details</p>
   </div>
   <div class="legend">
-    <div class="leg"><div class="dot" style="background:#F5A623"></div>Main</div>
-    <div class="leg"><div class="dot" style="background:#e53935"></div>SM Unrecharge</div>
-    <div class="leg"><div class="dot" style="background:#43a047"></div>Paid</div>
-    <div class="leg"><div class="dot" style="background:#8e24aa"></div>Lock</div>
-    <div class="leg"><div class="dot" style="background:#e53935;opacity:.5"></div>Theft</div>
+    <div class="leg"><div class="dot" style="background:#F9AB00"></div>Main</div>
+    <div class="leg"><div class="dot" style="background:#EA4335"></div>Defaulter/SM</div>
+    <div class="leg"><div class="dot" style="background:#34A853"></div>Paid</div>
+    <div class="leg"><div class="dot" style="background:#9C27B0"></div>Lock</div>
   </div>
   <div class="list" id="lst"></div>
 </div>
@@ -82,117 +62,126 @@ try {
   if (raw) { var p = JSON.parse(raw); DATA = p.data||[]; clat = p.lat||25.45; clon = p.lon||78.57; }
 } catch(e) {}
 
-// Adjust map width for sidebar
-var isMobile = window.innerWidth <= 600;
-var mapEl = document.getElementById('map');
-if (!isMobile) mapEl.style.marginRight = '320px';
-
-// Light Google Maps-like tile
-var map = L.map('map', {zoomControl:true}).setView([clat, clon], 16);
-
-// Google Maps-style tiles via OSM
-L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-  maxZoom: 20,
-  subdomains: ['mt0','mt1','mt2','mt3'],
-  attribution: '© Google'
-}).addTo(map);
-
-setTimeout(function(){ map.invalidateSize(); }, 200);
-
 function pinColor(d) {
-  if (d.main) return '#F5A623';
+  if (d.main) return '#F9AB00';
   var a = (d.atr||'').toUpperCase();
-  if (a==='PAID') return '#43a047';
-  if (a==='LOCK') return '#8e24aa';
-  if (a==='THEFT') return '#e53935';
-  return '#e53935';
+  if (a==='PAID') return '#34A853';
+  if (a==='LOCK') return '#9C27B0';
+  return '#EA4335';
 }
 
 function showDetail(d) {
   var dist = d.main ? '⭐ MAIN CONSUMER' : (d.dist<1?(d.dist*1000).toFixed(0)+' m away':d.dist.toFixed(2)+' km away');
-  document.getElementById('sel-name').textContent = d.name + ' (' + d.acct + ')';
+  document.getElementById('sel-name').textContent = d.name + ' [' + d.acct + ']';
   document.getElementById('sel-detail').textContent =
-    '📱 '+d.mobile+' | '+d.lmv+' | ₹'+d.out.toLocaleString()+' | ATR: '+d.atr+
-    '\n🏛 '+d.sub+' › '+d.feed+'  |  '+dist;
+    '📱 ' + d.mobile + ' | ₹' + d.out.toLocaleString() + ' | ' + dist + '\n📍 ' + d.sub + ' › ' + d.feed;
 }
 
-var lst = document.getElementById('lst');
+function initMap() {
+  var map = new google.maps.Map(document.getElementById('map'), {
+    center: {lat: clat, lng: clon},
+    zoom: 16,
+    mapTypeControl: false,
+    fullscreenControl: true,
+    streetViewControl: true,
+    zoomControl: true,
+    gestureHandling: 'greedy',
+    styles: [
+      {featureType:'poi',stylers:[{visibility:'simplified'}]},
+      {featureType:'transit',stylers:[{visibility:'off'}]}
+    ]
+  });
 
-DATA.forEach(function(d) {
-  var c = pinColor(d);
-  var sz = d.main ? 22 : 14;
+  var infoWindow = new google.maps.InfoWindow();
+  var lst = document.getElementById('lst');
 
-  // Use standard Leaflet markers for main, circle markers for nearby
-  var mk;
-  if (d.main) {
-    var ico = L.divIcon({
-      className:'',
-      html:'<div style="width:'+sz+'px;height:'+sz+'px;background:'+c+';border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4),0 0 0 3px '+c+'44"></div>',
-      iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]
-    });
-    mk = L.marker([d.lat,d.lon],{icon:ico,zIndexOffset:1000}).addTo(map);
-  } else {
-    mk = L.circleMarker([d.lat,d.lon],{
-      radius:7, fillColor:c, color:'#fff', weight:2,
-      opacity:1, fillOpacity:0.9
-    }).addTo(map);
+  if (!DATA.length) {
+    lst.innerHTML = '<div class="no-data">No data.<br/>Go back and click MAP button again.</div>';
+    return;
   }
 
-  var outColor = d.out>100000?'#e53935':d.out>10000?'#ef6c00':'#2e7d32';
-  var popup =
-    '<div class="popup-inner">'+
-    '<div class="popup-name">'+d.name+'</div>'+
-    '<div class="popup-row"><span>Account ID</span><span>'+d.acct+'</span></div>'+
-    '<div class="popup-row"><span>Mobile</span><span>'+d.mobile+'</span></div>'+
-    '<div class="popup-row"><span>Outstanding</span><span style="color:'+outColor+'">₹'+d.out.toLocaleString()+'</span></div>'+
-    '<div class="popup-row"><span>ATR Status</span><span>'+d.atr+'</span></div>'+
-    '<div class="popup-row"><span>LMV Type</span><span>'+d.lmv+'</span></div>'+
-    '<div class="popup-row"><span>Substation</span><span>'+d.sub+'</span></div>'+
-    '<div class="popup-row"><span>Feeder</span><span>'+d.feed+'</span></div>'+
-    '<div class="popup-addr">'+d.addr+'</div>'+
-    (d.main?'':'<div class="popup-dist">📏 '+(d.dist<1?(d.dist*1000).toFixed(0)+' m away':d.dist.toFixed(2)+' km away')+'</div>')+
-    '</div>';
+  DATA.forEach(function(d) {
+    var color = pinColor(d);
+    var sz = d.main ? 16 : 11;
 
-  mk.bindPopup(popup,{maxWidth:280,minWidth:220});
-  mk.on('click',function(){ showDetail(d); });
-  if (d.main) setTimeout(function(){ mk.openPopup(); },400);
+    var marker = new google.maps.Marker({
+      position: {lat: d.lat, lng: d.lon},
+      map: map,
+      zIndex: d.main ? 999 : 1,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: sz,
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: '#fff',
+        strokeWeight: d.main ? 3 : 2
+      },
+      title: d.name
+    });
 
-  // Sidebar list item
-  var oc = d.out>100000?'#e53935':d.out>10000?'#ef6c00':'#2e7d32';
-  var ac = d.atr==='PAID'?'#43a047':d.atr==='LOCK'?'#8e24aa':d.atr==='THEFT'?'#e53935':'#e53935';
-  var acBg = d.atr==='PAID'?'#e8f5e9':d.atr==='LOCK'?'#f3e5f5':'#ffebee';
-  var ds = d.main?'⭐ MAIN':(d.dist<1?(d.dist*1000).toFixed(0)+'m':d.dist.toFixed(2)+'km');
+    var outColor = d.out > 100000 ? '#EA4335' : d.out > 10000 ? '#F9AB00' : '#34A853';
+    var content =
+      '<div style="font-family:sans-serif;min-width:200px;max-width:250px;font-size:12px;">' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #eee;">' + d.name + '</div>' +
+      '<div><b>Account:</b> ' + d.acct + '</div>' +
+      '<div><b>Mobile:</b> ' + d.mobile + '</div>' +
+      '<div><b>Outstanding:</b> <span style="color:' + outColor + ';font-weight:700">₹' + d.out.toLocaleString() + '</span></div>' +
+      '<div><b>ATR:</b> ' + d.atr + '</div>' +
+      '<div><b>Substation:</b> ' + d.sub + '</div>' +
+      '<div><b>Feeder:</b> ' + d.feed + '</div>' +
+      '<div style="font-size:10px;color:#888;margin-top:4px;">' + d.addr + '</div>' +
+      (d.main ? '' : '<div style="margin-top:4px;color:#4285F4;font-size:10px;">📏 ' + (d.dist<1?(d.dist*1000).toFixed(0)+' m':d.dist.toFixed(2)+' km') + ' away</div>') +
+      '</div>';
 
-  var el = document.createElement('div');
-  el.className = 'item '+(d.main?'main-item':'near-item');
-  el.innerHTML =
-    '<div class="item-left">'+
-      '<div class="item-name">'+d.name+'</div>'+
-      '<div class="item-sub">'+d.acct+' | '+d.sub+' › '+d.feed+'</div>'+
-      '<div class="item-sub">'+d.addr.substring(0,55)+'</div>'+
-    '</div>'+
-    '<div class="item-right">'+
-      '<div class="item-out" style="color:'+oc+'">₹'+d.out.toLocaleString()+'</div>'+
-      '<div class="item-atr" style="color:'+ac+';background:'+acBg+'">'+d.atr+'</div>'+
-      '<div class="item-dist">'+ds+'</div>'+
-    '</div>';
-
-  el.addEventListener('click',(function(d,mk){
-    return function(){
-      map.setView([d.lat,d.lon],18);
-      mk.openPopup();
+    marker.addListener('click', function() {
+      infoWindow.setContent(content);
+      infoWindow.open(map, marker);
       showDetail(d);
-    };
-  })(d,mk));
+    });
 
-  lst.appendChild(el);
-});
+    if (d.main) {
+      setTimeout(function() {
+        infoWindow.setContent(content);
+        infoWindow.open(map, marker);
+      }, 600);
+    }
 
-if (DATA.length>0) showDetail(DATA[0]);
-else {
-  document.getElementById('sel-name').textContent='No data found';
-  document.getElementById('sel-detail').textContent='Please go back and click MAP button again.';
+    // Sidebar list
+    var oc = d.out>100000?'#EA4335':d.out>10000?'#F9AB00':'#34A853';
+    var ds = d.main?'⭐ MAIN':(d.dist<1?(d.dist*1000).toFixed(0)+'m':d.dist.toFixed(2)+'km');
+    var el = document.createElement('div');
+    el.className = 'item ' + (d.main?'main':'near');
+    el.innerHTML =
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="item-name">' + d.name + '</div>' +
+        '<div class="item-sub">' + d.acct + ' | ' + d.sub + ' › ' + d.feed + '</div>' +
+        '<div class="item-sub">' + d.addr.substring(0,50) + '</div>' +
+      '</div>' +
+      '<div style="flex-shrink:0;text-align:right;">' +
+        '<div class="item-out" style="color:' + oc + '">₹' + d.out.toLocaleString() + '</div>' +
+        '<div class="item-dist">' + ds + '</div>' +
+      '</div>';
+
+    el.addEventListener('click', (function(d, marker, content) {
+      return function() {
+        map.setCenter({lat:d.lat,lng:d.lon});
+        map.setZoom(18);
+        infoWindow.setContent(content);
+        infoWindow.open(map, marker);
+        showDetail(d);
+      };
+    })(d, marker, content));
+
+    lst.appendChild(el);
+  });
+
+  if (DATA.length > 0) showDetail(DATA[0]);
 }
+</script>
+
+<!-- Google Maps API - dynamic interactive map -->
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&callback=initMap">
 </script>
 </body>
 </html>

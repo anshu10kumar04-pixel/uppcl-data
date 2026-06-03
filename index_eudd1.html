@@ -176,6 +176,20 @@ select option{background:#fff;color:#1E1B4B;}
 #help-modal.open{display:flex;}
 #help-modal > div{background:#fff;border-radius:16px;width:100%;max-width:660px;max-height:90vh;overflow-y:auto;}
 
+/* ── MULTI-SELECT ── */
+.ms-wrap{position:relative;}
+.ms-btn{width:100%;background:#fff;border:1.5px solid #C7D2FE;border-radius:10px;padding:10px 12px;color:var(--text);font-family:var(--fb);font-size:13px;font-weight:500;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;}
+.ms-btn:after{content:'▾';font-size:11px;color:var(--muted);}
+.ms-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #C7D2FE;border-radius:10px;max-height:200px;overflow-y:auto;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.12);display:none;margin-top:4px;}
+.ms-dropdown.open{display:block;}
+.ms-search{padding:8px 10px;border-bottom:1px solid #EEF2FF;}
+.ms-search input{width:100%;border:1px solid #C7D2FE;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;}
+.ms-option{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:500;}
+.ms-option:hover{background:#EEF2FF;}
+.ms-option input[type=checkbox]{accent-color:#4F46E5;width:14px;height:14px;}
+.ms-clear{padding:6px 12px;border-top:1px solid #EEF2FF;font-size:11px;color:#4F46E5;cursor:pointer;font-weight:600;text-align:center;}
+.ms-clear:hover{background:#EEF2FF;}
+
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:#F1F5F9;}
@@ -315,9 +329,36 @@ select option{background:#fff;color:#1E1B4B;}
         <option value="25000">₹25,000+</option><option value="50000">₹50,000+</option>
         <option value="100000">₹1,00,000+</option>
       </select></div></div>
-      <div><div class="lbl">SUBSTATION</div><div class="sw"><select id="def-sub" onchange="onDefSubChange()"><option value="">ALL</option></select></div></div>
-      <div><div class="lbl">FEEDER</div><div class="sw"><select id="def-feed" onchange="runDefaulterFilter()"><option value="">ALL</option></select></div></div>
-      <div><div class="lbl">SUPPLY TYPE</div><div class="sw"><select id="def-supply" onchange="runDefaulterFilter()"><option value="">ALL</option></select></div></div>
+      <div><div class="lbl">SUBSTATION</div>
+        <div class="ms-wrap" id="def-sub-wrap">
+          <button class="ms-btn" id="def-sub-btn" onclick="toggleMs('def-sub-dd')">ALL SUBSTATIONS</button>
+          <div class="ms-dropdown" id="def-sub-dd">
+            <div class="ms-search"><input type="text" placeholder="Search…" oninput="filterMsOptions('def-sub-dd',this.value)"/></div>
+            <div id="def-sub-opts"></div>
+            <div class="ms-clear" onclick="clearMs('sub')">Clear All</div>
+          </div>
+        </div>
+      </div>
+      <div><div class="lbl">FEEDER</div>
+        <div class="ms-wrap" id="def-feed-wrap">
+          <button class="ms-btn" id="def-feed-btn" onclick="toggleMs('def-feed-dd')">ALL FEEDERS</button>
+          <div class="ms-dropdown" id="def-feed-dd">
+            <div class="ms-search"><input type="text" placeholder="Search…" oninput="filterMsOptions('def-feed-dd',this.value)"/></div>
+            <div id="def-feed-opts"></div>
+            <div class="ms-clear" onclick="clearMs('feed')">Clear All</div>
+          </div>
+        </div>
+      </div>
+      <div><div class="lbl">SUPPLY TYPE</div>
+        <div class="ms-wrap" id="def-supply-wrap">
+          <button class="ms-btn" id="def-supply-btn" onclick="toggleMs('def-supply-dd')">ALL SUPPLY TYPES</button>
+          <div class="ms-dropdown" id="def-supply-dd">
+            <div class="ms-search"><input type="text" placeholder="Search…" oninput="filterMsOptions('def-supply-dd',this.value)"/></div>
+            <div id="def-supply-opts"></div>
+            <div class="ms-clear" onclick="clearMs('supply')">Clear All</div>
+          </div>
+        </div>
+      </div>
       <div><div class="lbl">SORT</div><div class="sw"><select id="def-sort" onchange="runDefaulterFilter()">
         <option value="desc">Highest First</option><option value="asc">Lowest First</option>
       </select></div></div>
@@ -1049,6 +1090,92 @@ function expDcKML(){
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([kml],{type:'application/vnd.google-earth.kml+xml'}));a.download='SM_Unrecharge_'+Date.now()+'.kml';a.click();
 }
 
+// ─── MULTI-SELECT ─────────────────────────────────────────────────────────────
+var _defSelSubs = [], _defSelFeeds = [], _defSelSupplies = [];
+
+function toggleMs(id){
+  var dd = gel(id);
+  if(!dd) return;
+  // Close all others first
+  document.querySelectorAll('.ms-dropdown.open').forEach(function(d){ if(d.id!==id) d.classList.remove('open'); });
+  dd.classList.toggle('open');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.ms-wrap')) document.querySelectorAll('.ms-dropdown').forEach(function(d){d.classList.remove('open');});
+});
+
+function filterMsOptions(ddId, q){
+  var opts = gel(ddId) ? gel(ddId).querySelectorAll('.ms-option') : [];
+  q = q.toLowerCase();
+  opts.forEach(function(o){ o.style.display = (!q || o.textContent.toLowerCase().includes(q)) ? '' : 'none'; });
+}
+
+function buildMsOptions(type, values){
+  var optsEl = gel('def-'+type+'-opts');
+  if(!optsEl) return;
+  var sel = type==='sub' ? _defSelSubs : type==='feed' ? _defSelFeeds : _defSelSupplies;
+  optsEl.innerHTML = '';
+  var t = type;
+  values.forEach(function(v){
+    var lbl = document.createElement('label');
+    lbl.className = 'ms-option';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.value = v;
+    cb.checked = sel.indexOf(v) >= 0;
+    cb.addEventListener('change', (function(tp){ return function(){ onMsChange(tp, this); }; })(t));
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(' ' + v));
+    optsEl.appendChild(lbl);
+  });
+}
+
+function onMsChange(type, cb){
+  var sel = type==='sub' ? _defSelSubs : type==='feed' ? _defSelFeeds : _defSelSupplies;
+  if(cb.checked){ if(sel.indexOf(cb.value)<0) sel.push(cb.value); }
+  else { var i=sel.indexOf(cb.value); if(i>=0) sel.splice(i,1); }
+  updateMsBtn(type);
+  if(type==='sub') refreshFeedOptions();
+  runDefaulterFilter();
+}
+
+function updateMsBtn(type){
+  var sel = type==='sub' ? _defSelSubs : type==='feed' ? _defSelFeeds : _defSelSupplies;
+  var btn = gel('def-'+type+'-btn');
+  if(!btn) return;
+  var allLabel = type==='sub'?'ALL SUBSTATIONS':type==='feed'?'ALL FEEDERS':'ALL SUPPLY TYPES';
+  btn.textContent = sel.length===0 ? allLabel : sel.length===1 ? sel[0] : sel.length+' selected';
+}
+
+function clearMs(type){
+  if(type==='sub'){ _defSelSubs=[]; buildMsOptions('sub', getAllSubValues()); }
+  else if(type==='feed'){ _defSelFeeds=[]; buildMsOptions('feed', getAllFeedValues()); }
+  else { _defSelSupplies=[]; buildMsOptions('supply', getAllSupplyValues()); }
+  updateMsBtn(type);
+  if(type==='sub') refreshFeedOptions();
+  runDefaulterFilter();
+}
+
+function getAllSubValues(){
+  return [...new Set(DEF_ALL.map(function(r){return r.SUBSTATION;}).filter(Boolean))].sort();
+}
+function getAllFeedValues(){
+  var subs = _defSelSubs;
+  return [...new Set(DEF_ALL.filter(function(r){
+    return !subs.length || subs.indexOf(r.SUBSTATION)>=0;
+  }).map(function(r){return r.FEEDER;}).filter(Boolean))].sort();
+}
+function getAllSupplyValues(){
+  return [...new Set(DEF_ALL.map(function(r){return r.SUPPLY_TYPE;}).filter(Boolean))].sort();
+}
+
+function refreshFeedOptions(){
+  _defSelFeeds = [];
+  buildMsOptions('feed', getAllFeedValues());
+  updateMsBtn('feed');
+}
+
 // ─── DEFAULTERS ───────────────────────────────────────────────────────────────
 function loadDefaulters(){
   // Panel HTML is static - always in DOM
@@ -1075,30 +1202,14 @@ function loadDefaulters(){
 }
 
 function buildDefaulterPanel(){
-  // Panel HTML is static - just populate dropdowns
-  var subs=[...new Set(DEF_ALL.map(function(r){return r.SUBSTATION;}).filter(Boolean))].sort();
-  var defSub=gel('def-sub');
-  if(defSub && defSub.options.length<=1){
-    subs.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;defSub.appendChild(o);});
-  }
-  var supplies=[...new Set(DEF_ALL.map(function(r){return r.SUPPLY_TYPE;}).filter(Boolean))].sort();
-  var defSup=gel('def-supply');
-  if(defSup && defSup.options.length<=1){
-    supplies.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;defSup.appendChild(o);});
-  }
-  // Data already in DEF_ALL - render immediately
+  // Populate multi-select substations
+  buildMsOptions('sub', getAllSubValues());
+  buildMsOptions('feed', getAllFeedValues());
+  // Populate supply type single select
+  buildMsOptions('supply', getAllSupplyValues());
   runDefaulterFilter();
 }
-function onDefSubChange(){
-  var sub=gel('def-sub')?gel('def-sub').value:'';
-  var feedSel=gel('def-feed'); if(!feedSel)return;
-  var cur=feedSel.value;
-  while(feedSel.options.length>1)feedSel.remove(1);
-  var feeds=[...new Set(D.filter(function(r){return !sub||r.SUBSTATION===sub;}).map(function(r){return r.FEEDER;}).filter(Boolean))].sort();
-  feeds.forEach(function(f){var o=document.createElement('option');o.value=f;o.textContent=f;feedSel.appendChild(o);});
-  feedSel.value=cur;
-  runDefaulterFilter();
-}
+function onDefSubChange(){ refreshFeedOptions(); runDefaulterFilter(); }
 
 // Pre-built full defaulter list (loaded from defaulter.csv)
 var DEF_ALL = [];
@@ -1215,17 +1326,17 @@ function runDefaulterFilter(){
   if(!DEF_ALL.length) buildDefAll();
 
   var minOut = parseFloat(gel('def-min') ? gel('def-min').value : 5000) || 5000;
-  var sub    = gel('def-sub')    ? gel('def-sub').value    : '';
-  var feed   = gel('def-feed')   ? gel('def-feed').value   : '';
-  var supply = gel('def-supply') ? gel('def-supply').value : '';
+  var sub    = _defSelSubs;   // array
+  var feed   = _defSelFeeds;  // array
+  var supply = _defSelSupplies; // array
   var sortDir= gel('def-sort')   ? gel('def-sort').value   : 'desc';
 
   // Fast filter on pre-built array
   var all = DEF_ALL.filter(function(r){
     if(r.OUTSTANDING < minOut) return false;
-    if(sub    && r.SUBSTATION  !== sub)    return false;
-    if(feed   && r.FEEDER      !== feed)   return false;
-    if(supply && r.SUPPLY_TYPE !== supply) return false;
+    if(sub.length    && sub.indexOf(r.SUBSTATION)<0)  return false;
+    if(feed.length   && feed.indexOf(r.FEEDER)<0)     return false;
+    if(supply.length && supply.indexOf(r.SUPPLY_TYPE)<0) return false;
     return true;
   });
 
@@ -1322,7 +1433,41 @@ function openMainDetail(acctId){
   } else gel('modal-pay-section').style.display='none';
 
   gel('modal-atr-section').style.display='none';
-  gel('modal-nearby-section').style.display='none';
+
+  // Show nearby defaulters if LAT/LON available
+  if(lat&&lon){
+    gel('modal-nearby-section').style.display='block';
+    gel('modal-nearby-section').querySelector('div:first-child').textContent='📍 NEARBY DEFAULTERS (500m)';
+    modalNearbyLat=lat; modalNearbyLon=lon;
+    // Find nearby from DEF_ALL
+    var nearby=DEF_ALL.filter(function(x){
+      return String(x.ACCT_ID)!==String(acctId)&&x.LAT&&x.LON;
+    }).map(function(x){
+      var xLat=parseFloat(x.LAT),xLon=parseFloat(x.LON);
+      return Object.assign({},x,{_dist:haversine(lat,lon,xLat,xLon),_lat:xLat,_lon:xLon});
+    }).filter(function(x){return x._dist<=0.5;})
+    .sort(function(a,b){return a._dist-b._dist;})
+    .slice(0,8);
+
+    var cnt=gel('modal-nb-count'); if(cnt)cnt.textContent=nearby.length+' FOUND';
+    var lst=gel('modal-nb-list'); if(!lst)return;
+    if(!nearby.length){
+      lst.innerHTML='<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px;">No nearby defaulters within 500m</div>';
+    } else {
+      lst.innerHTML=nearby.map(function(x){
+        var dist=x._dist<1?(x._dist*1000).toFixed(0)+'m':x._dist.toFixed(2)+'km';
+        var out=Math.round(x.OUTSTANDING||0);
+        var oc=out>100000?'#F43F5E':out>10000?'#F59E0B':'var(--text)';
+        return '<div class="nb-card" onclick="closeModal();setTimeout(function(){openFromDefaulter(\''+x.ACCT_ID+'\');},100)">'+
+          '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'+
+            '<div><div style="font-size:12px;font-weight:700;">'+x.NAME+'</div>'+
+            '<div style="font-size:10px;color:var(--muted);">'+x.ACCT_ID+' | '+x.SUBSTATION+'</div></div>'+
+            '<div style="text-align:right"><div style="font-family:var(--fh);font-size:11px;font-weight:700;color:#4F46E5;">'+dist+'</div>'+
+            '<div style="font-family:var(--fh);font-size:12px;font-weight:700;color:'+oc+';">₹'+out.toLocaleString()+'</div></div>'+
+          '</div></div>';
+      }).join('');
+    }
+  } else gel('modal-nearby-section').style.display='none';
 
   var mapBtn=gel('modal-map-btn');
   if(lat&&lon){mapBtn.href='https://www.google.com/maps?q='+lat+','+lon+'&z=17';mapBtn.style.display='inline-flex';}
