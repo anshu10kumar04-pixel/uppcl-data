@@ -1370,16 +1370,86 @@ function autoFetch() {
       setTimeout(function(){ ia(); hl2(); }, 30);
       return;
     }
-    sl('PARSING ' + (idx+1) + ' OF ' + FILES.length + '…', 65 + Math.round(idx/FILES.length*26));
-    setTimeout(function() {
-      var text = allTexts[idx];
-      allTexts[idx] = null;
-      if (text) {
-        var rows = fastParseCSV(text);
-        for (var j=0;j<rows.length;j++) { if(rows[j].ACCT_ID) D.push(rows[j]); }
+    var text = allTexts[idx];
+    allTexts[idx] = null;
+    if (!text) { parseNext(idx + 1); return; }
+
+    // Parse in chunks of 5000 rows to avoid blocking UI
+    var CHUNK = 5000;
+    var lines = text.split('\n');
+    text = null; // free memory
+    var hdrs = lines[0].replace(/\r/,'').split(',').map(function(h){ return h.replace(/"/g,'').trim(); });
+    var totalLines = lines.length;
+    var pos = 1;
+
+    // Get column indices once
+    var iAcct=hdrs.indexOf('ACCT_ID'), iMob=hdrs.indexOf('MOBILE_NO'),
+        iName=hdrs.indexOf('NAME'), iFath=hdrs.indexOf('FATHER_NAME'),
+        iAddr=hdrs.indexOf('ADDRESS'), iCat=hdrs.indexOf('CATEGORY'),
+        iLoad=hdrs.indexOf('LOAD'), iLat=hdrs.indexOf('LAT'),
+        iLon=hdrs.indexOf('LON'), iSub=hdrs.indexOf('SUBSTATION'),
+        iFeed=hdrs.indexOf('FEEDER'), iSerl=hdrs.indexOf('SERIAL_NBR'),
+        iPayAmt=hdrs.indexOf('LP AMT'), iPayDate=hdrs.indexOf('LP DATE'),
+        iTotOut=hdrs.indexOf('TOTAL OUTSTANDING');
+    // Auto-detect LP DATE/LP AMT swap at header level
+    var _lpAmtSwapped = false;
+
+    function parseChunk() {
+      var end = Math.min(pos + CHUNK, totalLines);
+      var pct = 65 + Math.round(((idx + pos/totalLines) / FILES.length) * 26);
+      sl('PARSING ' + (idx+1) + '/' + FILES.length + '… ' + Math.round(pos/totalLines*100) + '%', pct);
+
+      for (var i = pos; i < end; i++) {
+        var line = lines[i];
+        if (!line || line === '\r') continue;
+        var v = line.split(',');
+        var acct = v[iAcct];
+        if (!acct) continue;
+        if (acct.charCodeAt(0) === 34) acct = acct.substring(1, acct.length-1);
+        var lat = (v[iLat]||'').replace(/"/g,'');
+        var lon = (v[iLon]||'').replace(/"/g,'');
+        var rLat = parseFloat(lat), rLon = parseFloat(lon);
+        if (rLat > 50) { var tmp=rLat; rLat=rLon; rLon=tmp; lat=String(rLat); lon=String(rLon); }
+        var rowObj = {
+          ACCT_ID: acct,
+          MOBILE_NO:  (v[iMob] ||'').replace(/"/g,''),
+          NAME:       (v[iName]||'').replace(/"/g,''),
+          FATHER_NAME:iFath>=0?(v[iFath]||'').replace(/"/g,''):'',
+          ADDRESS:    (v[iAddr]||'').replace(/"/g,''),
+          CATEGORY:   (v[iCat] ||'').replace(/"/g,''),
+          LOAD:       (v[iLoad]||'').replace(/"/g,''),
+          LAT: lat, LON: lon,
+          SUBSTATION: (v[iSub] ||'').replace(/"/g,''),
+          FEEDER:     (v[iFeed]||'').replace(/"/g,''),
+          SERIAL_NBR: (v[iSerl]||'').replace(/"/g,''),
+          Google_Map_Link: (lat&&lon)?'https://www.google.com/maps?q='+lat+','+lon:''
+        };
+        if (iPayAmt >= 0) {
+          var rawAmt  = (v[iPayAmt] ||'-').replace(/"/g,'');
+          var rawDate = (v[iPayDate]||'-').replace(/"/g,'');
+          // Auto-fix swap: if amt looks like a date and date looks like a number
+          if (rawAmt && rawDate && /\d{2}-\d{2}-\d{4}/.test(rawAmt)) {
+            var t=rawAmt; rawAmt=rawDate; rawDate=t;
+          }
+          PAY_DATA[acct] = {
+            PAY_AMT: rawAmt, PAY_DATE: rawDate,
+            TOTAL_OUTSTANDING: iTotOut>=0?(v[iTotOut]||'-').replace(/"/g,''):'-',
+            STATUS: 'INSERVICE', NAME: rowObj.NAME,
+            SUPPLY_TYPE: rowObj.CATEGORY||'-', CLOSING_READING: '-'
+          };
+        }
+        D.push(rowObj);
       }
-      parseNext(idx + 1);
-    }, 30);
+
+      pos = end;
+      if (pos < totalLines) {
+        setTimeout(parseChunk, 10); // yield to browser every 5000 rows
+      } else {
+        lines = null;
+        parseNext(idx + 1);
+      }
+    }
+    setTimeout(parseChunk, 10);
   }
 }
 
