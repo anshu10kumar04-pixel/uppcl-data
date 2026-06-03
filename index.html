@@ -1363,36 +1363,29 @@ function autoFetch() {
 }
 
 function fastParseCSV(text) {
-  // Parse quoted CSV properly
-  function parseCSVLine(line) {
-    const vals = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
-        else inQ = !inQ;
-      } else if (ch === ',' && !inQ) {
-        vals.push(cur); cur = '';
-      } else { cur += ch; }
-    }
-    vals.push(cur);
-    return vals;
-  }
-
-  const lines = text.split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const hdrs = parseCSVLine(lines[0]);
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
+  // Ultra-fast CSV parse - simple comma split (our lean CSVs have no commas in fields)
+  var nl = text.indexOf('\n');
+  if (nl < 0) return [];
+  var headerLine = text.substring(0, nl).replace(/\r/,'');
+  var hdrs = headerLine.split(',').map(function(h){ return h.replace(/"/g,'').trim(); });
+  var rows = [];
+  var pos = nl + 1;
+  var len = text.length;
+  while (pos < len) {
+    var end = text.indexOf('\n', pos);
+    if (end < 0) end = len;
+    var line = text.substring(pos, end);
+    if (line.charCodeAt(line.length-1) === 13) line = line.substring(0, line.length-1);
+    pos = end + 1;
     if (!line) continue;
-    const vals = parseCSVLine(line);
-    const obj = {};
-    hdrs.forEach((h, j) => { obj[h] = vals[j] !== undefined ? vals[j] : ''; });
+    var vals = line.split(',');
+    if (!vals[0]) continue;
+    var obj = {};
+    for (var j = 0; j < hdrs.length; j++) {
+      obj[hdrs[j]] = vals[j] ? vals[j].replace(/"/g,'') : '';
+    }
     if (!obj.ACCT_ID) continue;
-    obj.Google_Map_Link = obj['GOOGLE MAP LINK'] || obj['Google_Map_Link'] ||
-      (obj.LAT && obj.LON ? 'https://www.google.com/maps?q=' + obj.LAT + ',' + obj.LON : '');
+    if (obj.LAT && obj.LON) obj.Google_Map_Link = 'https://www.google.com/maps?q=' + obj.LAT + ',' + obj.LON;
     rows.push(obj);
   }
   return rows;
