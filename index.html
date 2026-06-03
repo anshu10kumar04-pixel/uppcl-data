@@ -21,8 +21,8 @@
   --fb:'Noto Sans',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;font-weight:500;background-image:radial-gradient(circle,#BAE6FD 1px,transparent 1px);background-size:24px 24px;}
-.header{background:linear-gradient(135deg,#4F46E5,#4338CA);border-bottom:1px solid #6366F1;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;font-weight:500;}
+.header{background:linear-gradient(135deg,#4F46E5,#4338CA);border-bottom:1px solid #6366F1;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;will-change:transform;}
 .logo{display:flex;align-items:center;gap:12px;}
 .logo-icon{width:36px;height:36px;background:#FCD34D;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:16px;color:#000;font-weight:700;font-family:var(--fh);}
 .logo-text{font-family:var(--fh);font-size:22px;font-weight:700;letter-spacing:1px;color:#FFFFFF;}
@@ -41,11 +41,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100
 .upload-btn:hover{opacity:.85;}
 #file-input{display:none;}
 #app{display:none;}
-.tabs{display:flex;gap:0;background:#FFFFFF;border-bottom:2px solid #7DD3FC;padding:0 28px;overflow-x:auto;box-shadow:0 2px 8px rgba(14,165,233,0.1);}
-.tab{font-family:var(--fh);font-size:14px;font-weight:700;letter-spacing:1px;padding:14px 24px;border-bottom:3px solid transparent;cursor:pointer;color:#374151;white-space:nowrap;transition:color .2s,border-color .2s;}
+.tabs{display:flex;gap:0;background:#FFFFFF;border-bottom:2px solid #7DD3FC;padding:0 28px;overflow-x:auto;}
+.tab{font-family:var(--fh);font-size:14px;font-weight:700;letter-spacing:1px;padding:14px 24px;border-bottom:3px solid transparent;cursor:pointer;color:#374151;white-space:nowrap;transition:color .15s;}
 .tab:hover{color:#4F46E5;}
 .tab.active{color:#4F46E5;border-bottom-color:#4F46E5;}
-.panel{display:none;padding:28px;background:transparent;}
+.panel{display:none;padding:28px;background:transparent;contain:layout style;}
 .panel.active{display:block;}
 .search-bar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
 .siw{flex:1;min-width:220px;position:relative;}
@@ -58,8 +58,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100
 .btn:hover{opacity:.82;}
 .rinfo{font-size:12px;color:#374151;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .rinfo .hl{color:var(--accent2);font-weight:600;}
-.tw{overflow-x:auto;border-radius:12px;border:1px solid #7DD3FC;box-shadow:0 2px 12px rgba(14,165,233,0.12);background:#FFFFFF;}
-table{width:100%;border-collapse:collapse;font-size:12.5px;border:1px solid #BAE6FD;}
+.tw{overflow-x:auto;border-radius:12px;border:1px solid #BAE6FD;background:#FFFFFF;contain:content;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;border:1px solid #BAE6FD;table-layout:fixed;}
 thead tr{background:#EEF2FF;}
 th{padding:11px 14px;text-align:left;font-family:var(--fh);font-size:11px;font-weight:600;letter-spacing:1.2px;color:#4338CA;white-space:nowrap;border:1px dotted #BAE6FD;border-bottom:2px solid #7DD3FC;}
 td{padding:10px 14px;border:1px dotted #BAE6FD;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;font-weight:500;}
@@ -829,19 +829,19 @@ html { scroll-behavior: smooth; }
 
     <!-- Summary cards -->
     <div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap">
-      <div style="background:linear-gradient(135deg,#FEF2F2,#FEE2E2);border:1px solid #FECACA;border-left:4px solid #DC2626;border-radius:12px;padding:14px 20px;min-width:140px">
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-left:4px solid #DC2626;border-radius:12px;padding:14px 20px;min-width:140px">
         <div style="font-family:var(--fh);font-size:26px;font-weight:700;color:#DC2626" id="def-count">0</div>
         <div style="font-size:11px;color:#991B1B;font-weight:600">TOTAL DEFAULTERS</div>
       </div>
-      <div style="background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border:1px solid #FED7AA;border-left:4px solid #EA580C;border-radius:12px;padding:14px 20px;min-width:140px">
+      <div style="background:#FFF7ED;border:1px solid #FED7AA;border-left:4px solid #EA580C;border-radius:12px;padding:14px 20px;min-width:140px">
         <div style="font-family:var(--fh);font-size:26px;font-weight:700;color:#EA580C" id="def-total-out">₹0</div>
         <div style="font-size:11px;color:#9A3412;font-weight:600">TOTAL OUTSTANDING</div>
       </div>
-      <div style="background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border:1px solid #FDE68A;border-left:4px solid #D97706;border-radius:12px;padding:14px 20px;min-width:140px">
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-left:4px solid #D97706;border-radius:12px;padding:14px 20px;min-width:140px">
         <div style="font-family:var(--fh);font-size:26px;font-weight:700;color:#D97706" id="def-avg-out">₹0</div>
         <div style="font-size:11px;color:#92400E;font-weight:600">AVERAGE OUTSTANDING</div>
       </div>
-      <div style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border:1px solid #BFDBFE;border-left:4px solid #2563EB;border-radius:12px;padding:14px 20px;min-width:140px">
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #2563EB;border-radius:12px;padding:14px 20px;min-width:140px">
         <div style="font-family:var(--fh);font-size:26px;font-weight:700;color:#2563EB" id="def-shown-count">0</div>
         <div style="font-size:11px;color:#1E40AF;font-weight:600">SHOWING</div>
       </div>
@@ -979,7 +979,7 @@ let DC=[], DC_SUB_FEED_MAP={};  // Disconnected consumers data
 const DC_FILES = [
   'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/DISCONNECTED.xlsx'
 ];
-const PS=50;
+const PS=30;
 
 // Upload
 const fi=document.getElementById('file-input'),ub=document.getElementById('ub');
@@ -1022,6 +1022,16 @@ function sl(m,p){const ld=document.getElementById('loading');if(ld)ld.style.disp
 function hl2(){document.getElementById('loading').style.display='none';}
 
 function ia(){
+  // Filter D to only INSERVICE, TD, TD>6 MONTHS
+  if (Object.keys(PAY_DATA).length > 0) {
+    var allowed = ['INSERVICE','TD','TD>6 MONTHS','TD>6MONTHS','TD > 6 MONTHS'];
+    D = D.filter(function(r) {
+      var p = PAY_DATA[String(r.ACCT_ID)];
+      if (!p) return false;
+      var s = (p.STATUS||'').toUpperCase().replace(/\s+/g,'');
+      return allowed.some(function(a){ return s === a.replace(/\s+/g,''); });
+    });
+  }
   document.getElementById('upload-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sbar').style.display='flex';
@@ -1107,6 +1117,12 @@ function st(name){
 
 // SEARCH
 let sp=1;
+var _searchTimer = null;
+function debounceSearch() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(doSearch, 250);
+}
+
 function doSearch(){sp=1;const q=document.getElementById('si').value.trim();window.location.hash=q?'search='+encodeURIComponent(q):'';rs(1);document.getElementById('sup').textContent=q?'🔗 '+window.location.href:'';}
 function gr(){
   const q=document.getElementById('si').value.trim().toLowerCase();
@@ -2181,7 +2197,7 @@ function openDcDetail(acctId) {
     mapBtn.style.display = 'inline-flex';
   } else { mapBtn.style.display = 'none'; }
 
-  const dm=document.getElementById('detail-modal');dm.style.display='flex';dm.style.pointerEvents='all';dm.style.backdropFilter='blur(4px)';
+  const dm=document.getElementById('detail-modal');dm.style.display='flex';dm.style.pointerEvents='all';
   document.body.style.overflow = 'hidden';
 
   // Load nearby - use corrected LAT/LON (LAT~25.xx, LON~78.xx for Jhansi)
@@ -2267,7 +2283,7 @@ function openMainDetail(acctId) {
     mapBtn.style.display = 'inline-flex';
   } else { mapBtn.style.display = 'none'; }
 
-  const dm2=document.getElementById('detail-modal');dm2.style.display='flex';dm2.style.pointerEvents='all';dm2.style.backdropFilter='blur(4px)';
+  const dm2=document.getElementById('detail-modal');dm2.style.display='flex';dm2.style.pointerEvents='all';
   document.body.style.overflow = 'hidden';
 }
 
@@ -2275,7 +2291,7 @@ function closeModal() {
   const dm=document.getElementById('detail-modal');
   dm.style.display='none';
   dm.style.pointerEvents='none';
-  dm.style.backdropFilter='none';
+  
   document.body.style.overflow = '';
 }
 
@@ -2705,6 +2721,27 @@ function loadPaymentData() {
         };
       }
       console.log('Payment data loaded:', Object.keys(PAY_DATA).length, 'records');
+
+      // Re-filter D to only allowed statuses
+      if (D.length > 0) {
+        var allowed2 = ['INSERVICE','TD','TD>6MONTHS','TD>6 MONTHS','TD > 6 MONTHS'];
+        var beforeCount = D.length;
+        D = D.filter(function(r) {
+          var p = PAY_DATA[String(r.ACCT_ID)];
+          if (!p) return false;
+          var s = (p.STATUS||'').toUpperCase().replace(/\s+/g,'');
+          return allowed2.some(function(a){ return s === a.replace(/\s+/g,''); });
+        });
+        FD = D.slice();
+        console.log('Filtered from', beforeCount, 'to', D.length, 'consumers');
+        setText('s-tot', D.length.toLocaleString());
+        setText('rt', D.length.toLocaleString());
+        var subSet2=new Set(), feedSet2=new Set();
+        D.forEach(function(r){ if(r.SUBSTATION)subSet2.add(r.SUBSTATION); if(r.FEEDER)feedSet2.add(r.FEEDER); });
+        setText('s-sub', subSet2.size.toString());
+        setText('s-feed', feedSet2.size.toString());
+        setTimeout(function(){ af(); rs(1); }, 100);
+      }
     })
     .catch(function(err) {
       console.warn('Payment data not loaded:', err.message);
@@ -2863,6 +2900,11 @@ function closeHelp() {
   m.style.display = 'none';
   document.body.style.overflow = '';
 }
+
+
+// Performance: passive scroll listeners
+document.addEventListener('touchstart', function(){}, {passive: true});
+document.addEventListener('touchmove', function(){}, {passive: true});
 
 </script>
 </body>
