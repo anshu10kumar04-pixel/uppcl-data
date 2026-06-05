@@ -605,12 +605,7 @@ function loginSuccess(role){
   if(D.length===0) autoFetch();
 }
 function applyRoleRestrictions(role){
-  if(role==='admin'){
-    // Show admin-only buttons when panel loads
-    setTimeout(function(){
-      var b=gel('def-atr-export-btn'); if(b)b.style.display='inline-flex';
-    },2000);
-  }
+  // ATR Report available to all roles
   if(role==='user'){
     document.querySelectorAll('button').forEach(function(btn){
       if(btn.textContent.includes('SHEET SYNC')||btn.textContent.includes('EXPORT KML')) btn.style.display='none';
