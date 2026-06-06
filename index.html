@@ -332,6 +332,10 @@ select option{background:#fff;color:#1E1B4B;}
         <div style="font-size:12px;color:var(--muted);">Consumers with Outstanding &gt; ₹5,000</div>
       </div>
     </div>
+    <div class="ls" style="margin-bottom:12px;">
+      <input type="text" id="def-search" placeholder="Search by Name, Acct ID, Mobile, Meter No…" oninput="runDefaulterFilter()" style="flex:1;background:#fff;border:1.5px solid #C7D2FE;border-radius:10px;padding:11px 16px;font-family:var(--fh);font-size:14px;font-weight:600;letter-spacing:1px;outline:none;"/>
+      <button onclick="clearDefSearch()">✕ CLEAR</button>
+    </div>
     <div class="fg" style="margin-bottom:12px;">
       <div><div class="lbl">MIN OUTSTANDING</div><div class="sw"><select id="def-min" onchange="runDefaulterFilter()">
         <option value="5000">₹5,000+</option><option value="10000">₹10,000+</option>
@@ -1593,6 +1597,8 @@ function buildDefaulterPanel(){
   buildMsOptions('supply', getAllSupplyValues());
   runDefaulterFilter();
 }
+function clearDefSearch(){ var s=gel("def-search"); if(s){s.value="";} runDefaulterFilter(); }
+
 function onDefSubChange(){ refreshFeedOptions(); runDefaulterFilter(); }
 
 // Pre-built full defaulter list (loaded from defaulter.csv)
