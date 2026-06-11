@@ -1,31 +1,54 @@
 {
   "billed_eudd1": [
-    "billed_eudd1a.csv",
-    "billed_eudd1b.csv",
-    "billed_eudd1c.csv",
-    "billed_eudd1d.csv",
-    "billed_eudd1e.csv",
-    "billed_eudd1f.csv",
-    "billed_eudd1g.csv"
+    "billed/billed_eudd1a.csv",
+    "billed/billed_eudd1b.csv",
+    "billed/billed_eudd1c.csv",
+    "billed/billed_eudd1d.csv",
+    "billed/billed_eudd1e.csv",
+    "billed/billed_eudd1f.csv",
+    "billed/billed_eudd1g.csv"
   ],
   "unbilled_eudd1": [
-    "unbilled_eudd1a.csv"
+    "unbilled/unbilled_eudd1a.csv"
   ],
   "billed_eudd2": [
-    "billed_eudd2a.csv",
-    "billed_eudd2b.csv",
-    "billed_eudd2c.csv",
-    "billed_eudd2d.csv",
-    "billed_eudd2e.csv",
-    "billed_eudd2f.csv",
-    "billed_eudd2g.csv",
-    "billed_eudd2h.csv"
+    "billed/billed_eudd2a.csv",
+    "billed/billed_eudd2b.csv",
+    "billed/billed_eudd2c.csv",
+    "billed/billed_eudd2d.csv",
+    "billed/billed_eudd2e.csv",
+    "billed/billed_eudd2f.csv",
+    "billed/billed_eudd2g.csv",
+    "billed/billed_eudd2h.csv"
   ],
   "unbilled_eudd2": [
-    "unbilled_eudd2a.csv",
-    "unbilled_eudd2b.csv"
+    "unbilled/unbilled_eudd2a.csv",
+    "unbilled/unbilled_eudd2b.csv"
   ],
   "daily_date": "11062026",
-  "updated": "2026-06-11T11:53:28.067492Z",
-  "source": "local-ftp-sync"
+  "updated": "2026-06-11T12:12:24.009679Z",
+  "source": "local-ftp-sync",
+  "eudd1": [
+    "master/eudd1a.csv",
+    "master/eudd1b.csv",
+    "master/eudd1c.csv"
+  ],
+  "eudd2": [
+    "master/eudd2a.csv",
+    "master/eudd2b.csv",
+    "master/eudd2c.csv",
+    "master/eudd2d.csv"
+  ],
+  "sync_status": {
+    "233511": {
+      "master_period": "MAY_2026",
+      "billed_date": "11062026",
+      "unbilled_date": "11062026"
+    },
+    "233512": {
+      "master_period": "MAY_2026",
+      "billed_date": "11062026",
+      "unbilled_date": "11062026"
+    }
+  }
 }
