@@ -1,0 +1,31 @@
+{
+  "billed_eudd1": [
+    "billed_eudd1a.csv",
+    "billed_eudd1b.csv",
+    "billed_eudd1c.csv",
+    "billed_eudd1d.csv",
+    "billed_eudd1e.csv",
+    "billed_eudd1f.csv",
+    "billed_eudd1g.csv"
+  ],
+  "unbilled_eudd1": [
+    "unbilled_eudd1a.csv"
+  ],
+  "billed_eudd2": [
+    "billed_eudd2a.csv",
+    "billed_eudd2b.csv",
+    "billed_eudd2c.csv",
+    "billed_eudd2d.csv",
+    "billed_eudd2e.csv",
+    "billed_eudd2f.csv",
+    "billed_eudd2g.csv",
+    "billed_eudd2h.csv"
+  ],
+  "unbilled_eudd2": [
+    "unbilled_eudd2a.csv",
+    "unbilled_eudd2b.csv"
+  ],
+  "daily_date": "11062026",
+  "updated": "2026-06-11T11:53:28.067492Z",
+  "source": "local-ftp-sync"
+}
