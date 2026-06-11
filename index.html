@@ -550,20 +550,22 @@ function fmtOut(v){ var n=parseFloat(v)||0; return n>0?'<span style="color:#F43F
 
 var _pgFns = {};
 function excelDateToStr(val){
-  if(!val || val==='-') return '-';
-  var s = String(val).trim();
-  // If it looks like a date string already (contains - or /)
-  if(s.indexOf('-')>0 || s.indexOf('/')>0) return s;
-  // Try Excel serial number
-  var n = parseFloat(s);
-  if(!isNaN(n) && n > 40000 && n < 60000){
-    // Excel date serial to JS date (Excel epoch is Dec 30 1899)
-    var d = new Date((n - 25569) * 86400 * 1000);
-    var dd = d.getUTCDate().toString().padStart(2,'0');
-    var mm = (d.getUTCMonth()+1).toString().padStart(2,'0');
-    var yy = d.getUTCFullYear();
-    return dd+'-'+mm+'-'+yy;
+  if(val===undefined || val===null || val==='' || val==='-') return '-';
+  var n = parseFloat(val);
+  if(!isNaN(n)){
+    if(n <= 0) return '-';
+    if(n > 30000 && n < 60000){
+      // Excel date serial to JS date (Excel epoch is Dec 30 1899)
+      var d = new Date((n - 25569) * 86400 * 1000);
+      var dd = d.getUTCDate().toString().padStart(2,'0');
+      var mm = (d.getUTCMonth()+1).toString().padStart(2,'0');
+      var yy = d.getUTCFullYear();
+      return dd+'-'+mm+'-'+yy;
+    }
+    return String(val);
   }
+  var s = String(val).trim();
+  if(s.indexOf('-')>0 || s.indexOf('/')>0) return s;
   return s;
 }
 
@@ -1035,6 +1037,8 @@ function loadDC(){
           NAME:r['NAME']||'',ADDRESS:r['ADDRES']||r['ADDRESS']||'',MOBILE_NO:String(r['MOBILE NO']||r['MOBILE_NO']||''),
           METER_NO:r['meterno']||r['METER_NO']||'',LOAD:r['load']||r['LOAD']||'',LMV:r['LMV']||'',
           OUTSTANDING:parseFloat(r['TOTAL OUTSTANDING']||r['OUTSTANDING'])||0,
+          LP_DATE:(r['lp date']!==undefined?r['lp date']:(r['LP DATE']!==undefined?r['LP DATE']:r['LP_DATE']))||0,
+          LP_AMT:parseFloat(r['lp amt']!==undefined?r['lp amt']:(r['LP AMT']!==undefined?r['LP AMT']:r['LP_AMT']))||0,
           SUBSTATION:r['SUBSTATION']||'',FEEDER:r['FEEDER']||'',
           LAT:String(r['LAT']||''),LON:String(r['LONG']||r['LON']||''),
           ATR_STATUS:atrStatus,
@@ -1174,6 +1178,8 @@ function renderDcTable(page){
       '<td>'+r.MOBILE_NO+'</td>'+
       '<td style="font-family:var(--fh);color:var(--muted);">'+r.METER_NO+'</td>'+
       '<td>'+atrBadge(r.LMV||'LMV-1')+'</td>'+
+      '<td class="mob-hide" style="font-size:11px;color:var(--muted);">'+excelDateToStr(r.LP_DATE)+'</td>'+
+      '<td style="font-family:var(--fh);color:#059669;font-weight:700;">'+(r.LP_AMT>0?'₹'+Math.round(r.LP_AMT).toLocaleString():'-')+'</td>'+
       '<td style="font-family:var(--fh);font-weight:700;color:'+outColor+';">₹'+out.toLocaleString()+'</td>'+
       '<td>'+r.SUBSTATION+'</td>'+
       '<td>'+r.FEEDER+'</td>'+
@@ -1205,6 +1211,8 @@ function openDcDetail(acctId){
     '<div class="modal-field"><div class="lbl">METER NUMBER</div><div class="val">'+(r.METER_NO||'-')+'</div></div>'+
     '<div class="modal-field"><div class="lbl">LMV TYPE</div><div class="val">'+(r.LMV||'-')+'</div></div>'+
     '<div class="modal-field"><div class="lbl">LOAD</div><div class="val">'+(r.LOAD||'-')+' kW</div></div>'+
+    '<div class="modal-field"><div class="lbl">LP DATE</div><div class="val">'+excelDateToStr(r.LP_DATE)+'</div></div>'+
+    '<div class="modal-field"><div class="lbl">LP AMOUNT</div><div class="val" style="color:#059669;font-weight:700;">₹'+Math.round(r.LP_AMT||0).toLocaleString()+'</div></div>'+
     '<div class="modal-field"><div class="lbl">OUTSTANDING</div><div class="val" style="font-size:16px;font-weight:700;color:'+(r.OUTSTANDING>0?'#F43F5E':'#10B981')+';">₹'+Math.round(r.OUTSTANDING).toLocaleString()+'</div></div>'+
     '<div class="modal-field"><div class="lbl">SUBSTATION</div><div class="val">'+(r.SUBSTATION||'-')+'</div></div>'+
     '<div class="modal-field"><div class="lbl">FEEDER</div><div class="val">'+(r.FEEDER||'-')+'</div></div>'+
