@@ -298,6 +298,7 @@ select option{background:#fff;color:#1E1B4B;}
     <div class="tab active" onclick="st('lookup')" ontouchstart="st('lookup')">🔍 SEARCH</div>
     <div class="tab" onclick="st('dc')" ontouchstart="st('dc')">🔴 SM UNRECHARGE</div>
     <div class="tab" onclick="st('defaulter')" ontouchstart="st('defaulter')">⚠️ DEFAULTERS</div>
+    <div class="tab" id="tab-settings" onclick="st('settings')" ontouchstart="st('settings')" style="display:none">⚙️ SETTINGS</div>
   </div>
 
   <!-- UPLOAD SCREEN -->
@@ -413,6 +414,9 @@ select option{background:#fff;color:#1E1B4B;}
     <div class="pg" id="def-pg"></div>
   </div>
 
+  <!-- SETTINGS PANEL -->
+  <div class="panel" id="panel-settings"></div>
+
 </div><!-- end #app -->
 
 <!-- CONSUMER DETAIL MODAL -->
@@ -494,15 +498,14 @@ select option{background:#fff;color:#1E1B4B;}
 
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
-const FILES_EUDD1 = [
-  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/eudd1a.csv',
-  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/eudd1b.csv'
-];
-const FILES_EUDD2 = [
-  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/eudd2a.csv',
-  'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/eudd2b.csv'
-];
-const FILES = FILES_EUDD1; // EUDD1 only
+const GH_OWNER='anshu10kumar04-pixel', GH_REPO='uppcl-data', GH_BRANCH='main';
+const RAW_BASE='https://raw.githubusercontent.com/'+GH_OWNER+'/'+GH_REPO+'/main/';
+const MANIFEST_URL=RAW_BASE+'manifest.json';
+const DIVISION='EUDD1'; // ALL / EUDD1 / EUDD2 (set by build script)
+let FILES_EUDD1=['eudd1a.csv','eudd1b.csv'].map(f=>RAW_BASE+f);
+let FILES_EUDD2=['eudd2a.csv','eudd2b.csv'].map(f=>RAW_BASE+f);
+let FILES=[];
+let SUB_DIVISION_MAP={};
 const DC_FILE = 'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/DISCONNECTED.xlsx';
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzd-Lq9Tx1dP8gn_dBb9ELyAm9B9PpKf0hPkcRL6EpQPIfc1ctPj3EhOmBzWIFqYjJzkg/exec';
 const DEFAULTER_FILE = 'https://raw.githubusercontent.com/anshu10kumar04-pixel/uppcl-data/main/defaulter.csv';
@@ -518,6 +521,7 @@ let dcPage = 1, defPage = 1;
 let _lastTab = '';
 let modalCurrentAcct = null, modalIsdc = false;
 let modalNearbyLat = null, modalNearbyLon = null;
+let _settingsBuilt = false;
 let _dcLoaded = false, _defBuilt = false;
 let _searchTimer = null;
 let _defSortCol = 'OUTSTANDING', _defSortAsc = false;
@@ -633,6 +637,164 @@ function autoSyncAtr(){
       }
     })
     .catch(function(e){ console.log('ATR auto-sync skipped:', e.message); });
+}
+
+// ─── SETTINGS / GITHUB UPLOAD ─────────────────────────────────────────────────
+var CSV_COLS=['ACCT_ID','MOBILE_NO','NAME','ADDRESS','CATEGORY','LOAD','LAT','LON','SUBSTATION','FEEDER','LP DATE','LP AMT','TOTAL OUTSTANDING'];
+function getGhPat(){ return localStorage.getItem('gh_pat')||''; }
+
+function ghApi(path,opts){
+  return fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path,Object.assign({
+    headers:{'Authorization':'token '+getGhPat(),'Accept':'application/vnd.github+json'}
+  },opts||{}));
+}
+function ghPutFile(path,content,msg){
+  return ghApi(path).then(function(r){return r.ok?r.json():null;}).then(function(existing){
+    var b64=btoa(unescape(encodeURIComponent(content)));
+    var body={message:msg,content:b64,branch:GH_BRANCH};
+    if(existing&&existing.sha) body.sha=existing.sha;
+    return ghApi(path,{method:'PUT',body:JSON.stringify(body)});
+  }).then(function(r){
+    if(!r.ok) return r.json().then(function(e){throw new Error(path+': '+(e.message||r.status));});
+    return r.json();
+  });
+}
+function csvEscape(v){
+  v=(v===undefined||v===null)?'':String(v);
+  return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+}
+function rowsToCsv(rows){
+  var lines=[CSV_COLS.join(',')];
+  rows.forEach(function(r){ lines.push(CSV_COLS.map(function(c){return csvEscape(r[c]);}).join(',')); });
+  return lines.join('\n');
+}
+function settingsLog(msg){
+  var l=gel('settings-log'); if(!l)return;
+  l.innerHTML+='<div>'+msg+'</div>'; l.scrollTop=l.scrollHeight;
+}
+
+function buildSettingsPanel(){
+  _settingsBuilt=true;
+  var subs=[...new Set((D.length?D:[]).map(function(r){return r.SUBSTATION;}).filter(Boolean))].sort();
+  if(!subs.length) subs=Object.keys(SUB_DIVISION_MAP);
+
+  var rowsHtml=subs.map(function(s){
+    var div=SUB_DIVISION_MAP[s]||'eudd1';
+    return '<tr><td style="padding:6px 10px;font-size:12px;font-weight:600;">'+s+'</td>'+
+      '<td style="text-align:center"><input type="radio" name="div_'+s.replace(/[^a-zA-Z0-9]/g,'_')+'" value="eudd1" '+(div==='eudd1'?'checked':'')+' data-sub="'+s+'" class="sub-div-radio"></td>'+
+      '<td style="text-align:center"><input type="radio" name="div_'+s.replace(/[^a-zA-Z0-9]/g,'_')+'" value="eudd2" '+(div==='eudd2'?'checked':'')+' data-sub="'+s+'" class="sub-div-radio"></td></tr>';
+  }).join('');
+
+  gel('panel-settings').innerHTML =
+    '<div style="font-family:var(--fh);font-size:20px;font-weight:700;color:#4F46E5;margin-bottom:14px;">⚙️ SETTINGS</div>'+
+
+    '<div style="background:#F8FAFF;border:1.5px solid #C7D2FE;border-radius:12px;padding:16px;margin-bottom:16px;">'+
+      '<div style="font-family:var(--fh);font-size:14px;font-weight:700;margin-bottom:10px;">📤 UPLOAD MASTER FILE → GITHUB</div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Upload a master Excel/CSV (columns: '+CSV_COLS.join(', ')+'). It will be split by division below, chunked (~5MB) and pushed to GitHub.</div>'+
+      '<input type="file" id="settings-file" accept=".xlsx,.xls,.csv" style="margin-bottom:12px;"/>'+
+      '<div style="font-family:var(--fh);font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 6px;">SUBSTATION → DIVISION ASSIGNMENT</div>'+
+      '<div style="max-height:220px;overflow-y:auto;border:1px solid #E5E7EB;border-radius:8px;">'+
+        '<table style="width:100%;border-collapse:collapse;">'+
+        '<thead><tr style="background:#EEF2FF;position:sticky;top:0;"><th style="text-align:left;padding:6px 10px;font-size:11px;">SUBSTATION</th><th style="font-size:11px;">EUDD1</th><th style="font-size:11px;">EUDD2</th></tr></thead>'+
+        '<tbody id="sub-div-rows">'+rowsHtml+'</tbody></table>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">'+
+        '<input type="password" id="gh-pat" placeholder="GitHub Personal Access Token" value="'+getGhPat()+'" style="flex:1;min-width:200px;border:1.5px solid #C7D2FE;border-radius:8px;padding:9px 12px;font-size:12px;" oninput="localStorage.setItem(&#39;gh_pat&#39;,this.value)"/>'+
+        '<button class="btn btn-acc" onclick="processAndUpload()">🚀 PROCESS &amp; UPLOAD</button>'+
+      '</div>'+
+      '<div id="settings-log" style="margin-top:12px;max-height:180px;overflow-y:auto;background:#0F172A;color:#A7F3D0;font-family:monospace;font-size:11px;padding:10px;border-radius:8px;display:none;"></div>'+
+    '</div>'+
+
+    '<div style="background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:12px;padding:16px;">'+
+      '<div style="font-family:var(--fh);font-size:14px;font-weight:700;margin-bottom:10px;">📡 FTP SERVER (CONFIG ONLY — fetch not yet implemented)</div>'+
+      '<div class="fg">'+
+        '<div><div class="lbl">HOST</div><div class="sw"><input type="text" id="ftp-host" value="'+(localStorage.getItem('ftp_host')||'')+'" placeholder="ftp.example.com"/></div></div>'+
+        '<div><div class="lbl">PORT</div><div class="sw"><input type="text" id="ftp-port" value="'+(localStorage.getItem('ftp_port')||'21')+'"/></div></div>'+
+        '<div><div class="lbl">USERNAME</div><div class="sw"><input type="text" id="ftp-user" value="'+(localStorage.getItem('ftp_user')||'')+'"/></div></div>'+
+        '<div><div class="lbl">PASSWORD</div><div class="sw"><input type="password" id="ftp-pass" value="'+(localStorage.getItem('ftp_pass')||'')+'"/></div></div>'+
+        '<div><div class="lbl">REMOTE PATH</div><div class="sw"><input type="text" id="ftp-path" value="'+(localStorage.getItem('ftp_path')||'/')+'"/></div></div>'+
+      '</div>'+
+      '<button class="btn" style="background:#EA580C;color:#fff;border:none;margin-top:8px;" onclick="saveFtpConfig()">💾 SAVE FTP CONFIG</button>'+
+    '</div>';
+}
+
+function saveFtpConfig(){
+  ['host','port','user','pass','path'].forEach(function(k){
+    var el=gel('ftp-'+k); if(el) localStorage.setItem('ftp_'+k,el.value);
+  });
+  alert('✅ FTP config saved locally.');
+}
+
+function processAndUpload(){
+  var fEl=gel('settings-file');
+  if(!fEl||!fEl.files[0]) return alert('Choose a file first.');
+  if(!getGhPat()) return alert('Enter GitHub Personal Access Token first.');
+
+  var subDivMap={};
+  document.querySelectorAll('.sub-div-radio:checked').forEach(function(r){ subDivMap[r.dataset.sub]=r.value; });
+
+  var logEl=gel('settings-log'); logEl.style.display='block'; logEl.innerHTML='';
+  settingsLog('⏳ Reading file…');
+
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      settingsLog('✅ Parsed '+rows.length+' rows.');
+
+      var groups={eudd1:[],eudd2:[]};
+      rows.forEach(function(r){
+        var sub=String(r.SUBSTATION||'').trim();
+        var div=subDivMap[sub]||'eudd1';
+        var lat=r.LAT, lon=r.LON;
+        if(parseFloat(lat)>50){var t=lat;lat=lon;lon=t;}
+        groups[div].push({
+          ACCT_ID:r.ACCT_ID,MOBILE_NO:r.MOBILE_NO,NAME:r.NAME,ADDRESS:r.ADDRESS,
+          CATEGORY:r.CATEGORY,LOAD:r.LOAD,LAT:lat,LON:lon,SUBSTATION:sub,FEEDER:r.FEEDER,
+          'LP DATE':r['LP DATE'],'LP AMT':r['LP AMT'],'TOTAL OUTSTANDING':r['TOTAL OUTSTANDING']
+        });
+      });
+
+      var manifest={eudd1:[],eudd2:[],substation_division:subDivMap,updated:new Date().toISOString()};
+      var MAX_BYTES=5*1024*1024;
+      var uploads=[];
+
+      ['eudd1','eudd2'].forEach(function(div){
+        var rs=groups[div], header=CSV_COLS.join(',')+'\n', chunkRows=[], chunkSize=header.length, letter=0;
+        function flush(){
+          if(!chunkRows.length) return;
+          var fname=div+String.fromCharCode(97+letter)+'.csv';
+          uploads.push({path:fname, content:rowsToCsv(chunkRows)});
+          manifest[div].push(fname);
+          letter++; chunkRows=[]; chunkSize=header.length;
+        }
+        rs.forEach(function(r){
+          var line=CSV_COLS.map(function(c){return csvEscape(r[c]);}).join(',')+'\n';
+          if(chunkSize+line.length>MAX_BYTES) flush();
+          chunkRows.push(r); chunkSize+=line.length;
+        });
+        flush();
+      });
+      uploads.push({path:'manifest.json', content:JSON.stringify(manifest,null,2)});
+
+      settingsLog('📦 Built '+uploads.length+' files: '+uploads.map(function(u){return u.path;}).join(', '));
+      settingsLog('☁️ Uploading to GitHub…');
+
+      var i=0;
+      function next(){
+        if(i>=uploads.length){ settingsLog('🎉 DONE! manifest.json updated. Reload to use new data.'); return; }
+        var u=uploads[i];
+        settingsLog('  → '+u.path+' ('+(u.content.length/1024).toFixed(0)+' KB)');
+        ghPutFile(u.path,u.content,'Update '+u.path+' via Settings tab')
+          .then(function(){ settingsLog('  ✅ '+u.path); i++; next(); })
+          .catch(function(err){ settingsLog('  ❌ '+u.path+': '+err.message); });
+      }
+      next();
+    }catch(err){ settingsLog('❌ Error: '+err.message); }
+  };
+  reader.readAsArrayBuffer(fEl.files[0]);
 }
 
 function downloadAtrFromSheet(){
@@ -804,6 +966,7 @@ function loginSuccess(role){
   if(D.length===0) autoFetch();
 }
 function applyRoleRestrictions(role){
+  if(role==='admin'){ var st=gel('tab-settings'); if(st) st.style.display=''; }
   // ATR Report available to all roles
   if(role==='user'){
     document.querySelectorAll('button').forEach(function(btn){
@@ -830,18 +993,36 @@ function st(name){
   document.querySelectorAll('.tab').forEach(function(tab){
     tab.classList.toggle('active', tab.getAttribute('onclick')&&tab.getAttribute('onclick').indexOf("'"+name+"'")>-1);
   });
-  ['lookup','dc','defaulter'].forEach(function(n){
+  ['lookup','dc','defaulter','settings'].forEach(function(n){
     var p=gel('panel-'+n); if(p)p.classList.toggle('active',n===name);
   });
   requestAnimationFrame(function(){
     if(name==='dc'&&!_dcLoaded) loadDC();
     if(name==='defaulter') loadDefaulters();
+    if(name==='settings'&&!_settingsBuilt) buildSettingsPanel();
   });
 }
 
 // ─── FETCH & PARSE ────────────────────────────────────────────────────────────
+function resolveFiles(){
+  return fetch(MANIFEST_URL).then(function(r){return r.ok?r.json():null;})
+    .then(function(m){
+      if(m){
+        if(m.eudd1&&m.eudd1.length) FILES_EUDD1=m.eudd1.map(function(f){return RAW_BASE+f;});
+        if(m.eudd2&&m.eudd2.length) FILES_EUDD2=m.eudd2.map(function(f){return RAW_BASE+f;});
+        if(m.substation_division) SUB_DIVISION_MAP=m.substation_division;
+      }
+    }).catch(function(){})
+    .then(function(){
+      FILES = DIVISION==='EUDD1'?FILES_EUDD1.slice():DIVISION==='EUDD2'?FILES_EUDD2.slice():FILES_EUDD1.concat(FILES_EUDD2);
+    });
+}
+
 function autoFetch(){
   gel('loading').style.display='flex';
+  resolveFiles().then(startDownloads);
+}
+function startDownloads(){
   var allTexts=new Array(FILES.length), fetched=0, total=FILES.length;
 
   // Fetch defaulter.csv in parallel
