@@ -890,19 +890,52 @@ function processAndUpload(){
     try{
       var wb=XLSX.read(e.target.result,{type:'array'});
       var ws=wb.Sheets[wb.SheetNames[0]];
-      var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-      settingsLog('✅ Parsed '+rows.length+' rows.');
+      var rawRows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rawRows.length) throw new Error('File is empty.');
+      
+      // Smart header detection
+      var firstRow = rawRows[0];
+      var keys = Object.keys(firstRow);
+      var hdrs = keys.map(k => k.trim().toUpperCase());
+      
+      var iAcct = findCol(hdrs, ['ACCT_ID']);
+      var iMob  = findCol(hdrs, ['MOBILE_NO', 'MOBILE']);
+      var iName = findCol(hdrs, ['NAME']);
+      var iAddr = findCol(hdrs, ['ADDRESS', 'ADDRES']);
+      var iCat  = findCol(hdrs, ['CATEGORY', 'TARIFF_TYPE', 'SUPPLY_TYPE', 'TARIFF']);
+      var iLoad = findCol(hdrs, ['LOAD', 'SANCTION_LOAD', 'SANCT_LOAD']);
+      var iLat  = findCol(hdrs, ['LAT', 'LATITUDE']);
+      var iLon  = findCol(hdrs, ['LON', 'LONGITUDE', 'LONG']);
+      var iSub  = findCol(hdrs, ['SUBSTATION', 'SUB_STATION']);
+      var iFeed = findCol(hdrs, ['FEEDER']);
+      var iDate = findCol(hdrs, ['LP DATE', 'PAY_DATE', 'LAST_PAY_DATE']);
+      var iAmt  = findCol(hdrs, ['LP AMT', 'PAY_AMT', 'LAST_PAY_AMT', 'LAST_PAYMENT_AMOUNT']);
+      var iOut  = findCol(hdrs, ['TOTAL OUTSTANDING', 'TOTAL_OUTSTANDING', 'AMOUNT_PAYABLE', 'OUTSTANDING']);
+
+      settingsLog('✅ Parsed '+rawRows.length+' rows. Detecting columns…');
 
       var groups={eudd1:[],eudd2:[]};
-      rows.forEach(function(r){
-        var sub=String(r.SUBSTATION||'').trim();
-        var div=subDivMap[sub]||'eudd1';
-        var lat=r.LAT, lon=r.LON;
+      rawRows.forEach(function(r){
+        var vals = keys.map(k => r[k]);
+        var sub = iSub>=0 ? String(vals[iSub]||'').trim() : '';
+        var div = subDivMap[sub]||'eudd1';
+        var lat = iLat>=0 ? vals[iLat] : '';
+        var lon = iLon>=0 ? vals[iLon] : '';
         if(parseFloat(lat)>50){var t=lat;lat=lon;lon=t;}
+        
         groups[div].push({
-          ACCT_ID:r.ACCT_ID,MOBILE_NO:r.MOBILE_NO,NAME:r.NAME,ADDRESS:r.ADDRESS,
-          CATEGORY:r.CATEGORY,LOAD:r.LOAD,LAT:lat,LON:lon,SUBSTATION:sub,FEEDER:r.FEEDER,
-          'LP DATE':r['LP DATE'],'LP AMT':r['LP AMT'],'TOTAL OUTSTANDING':r['TOTAL OUTSTANDING']
+          ACCT_ID: iAcct>=0 ? vals[iAcct] : '',
+          MOBILE_NO: iMob>=0 ? vals[iMob] : '',
+          NAME: iName>=0 ? vals[iName] : '',
+          ADDRESS: iAddr>=0 ? vals[iAddr] : '',
+          CATEGORY: iCat>=0 ? vals[iCat] : '',
+          LOAD: iLoad>=0 ? vals[iLoad] : '',
+          LAT: lat, LON: lon,
+          SUBSTATION: sub,
+          FEEDER: iFeed>=0 ? vals[iFeed] : '',
+          'LP DATE': iDate>=0 ? vals[iDate] : '',
+          'LP AMT': iAmt>=0 ? vals[iAmt] : '',
+          'TOTAL OUTSTANDING': iOut>=0 ? vals[iOut] : ''
         });
       });
 
