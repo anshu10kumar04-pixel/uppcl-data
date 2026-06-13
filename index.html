@@ -896,11 +896,11 @@ function processAndUpload(){
       // Smart header detection
       var firstRow = rawRows[0];
       var keys = Object.keys(firstRow);
-      var hdrs = keys.map(k => k.trim().toUpperCase());
+      var hdrs = keys.map(k => String(k).trim().toUpperCase());
       
-      var iAcct = findCol(hdrs, ['ACCT_ID']);
+      var iAcct = findCol(hdrs, ['ACCT_ID', 'ACCOUNT_ID']);
       var iMob  = findCol(hdrs, ['MOBILE_NO', 'MOBILE']);
-      var iName = findCol(hdrs, ['NAME']);
+      var iName = findCol(hdrs, ['NAME', 'CONSUMER_NAME']);
       var iAddr = findCol(hdrs, ['ADDRESS', 'ADDRES']);
       var iCat  = findCol(hdrs, ['CATEGORY', 'TARIFF_TYPE', 'SUPPLY_TYPE', 'TARIFF']);
       var iLoad = findCol(hdrs, ['LOAD', 'SANCTION_LOAD', 'SANCT_LOAD']);
@@ -908,11 +908,11 @@ function processAndUpload(){
       var iLon  = findCol(hdrs, ['LON', 'LONGITUDE', 'LONG']);
       var iSub  = findCol(hdrs, ['SUBSTATION', 'SUB_STATION']);
       var iFeed = findCol(hdrs, ['FEEDER']);
-      var iDate = findCol(hdrs, ['LP DATE', 'PAY_DATE', 'LAST_PAY_DATE']);
-      var iAmt  = findCol(hdrs, ['LP AMT', 'PAY_AMT', 'LAST_PAY_AMT', 'LAST_PAYMENT_AMOUNT']);
-      var iOut  = findCol(hdrs, ['TOTAL OUTSTANDING', 'TOTAL_OUTSTANDING', 'AMOUNT_PAYABLE', 'OUTSTANDING']);
+      var iDate = findCol(hdrs, ['PAY_DATE', 'LP DATE', 'LAST_PAY_DATE']);
+      var iAmt  = findCol(hdrs, ['PAY_AMT', 'LP AMT', 'LAST_PAY_AMT', 'LAST_PAYMENT_AMOUNT']);
+      var iOut  = findCol(hdrs, ['TOTAL_OUTSTANDING', 'TOTAL OUTSTANDING', 'AMOUNT_PAYABLE', 'OUTSTANDING']);
 
-      settingsLog('✅ Parsed '+rawRows.length+' rows. Detecting columns…');
+      settingsLog('✅ Parsed '+rawRows.length+' rows. Mapping columns…');
 
       var groups={eudd1:[],eudd2:[]};
       rawRows.forEach(function(r){
@@ -1306,9 +1306,9 @@ function parseFileInto(text, type){
   var nl=text.indexOf('\n', start); if(nl<0)return;
   var hdrs=text.substring(start,nl).replace(/\r/,'').split(',').map(function(h){return h.replace(/"/g,'').trim().toUpperCase();});
   
-  var iAcct = findCol(hdrs, ['ACCT_ID']);
+  var iAcct = findCol(hdrs, ['ACCT_ID', 'ACCOUNT_ID']);
   var iMob  = findCol(hdrs, ['MOBILE_NO', 'MOBILE']);
-  var iName = findCol(hdrs, ['NAME']);
+  var iName = findCol(hdrs, ['NAME', 'CONSUMER_NAME']);
   var iFath = findCol(hdrs, ['FATHER_NAME']);
   var iAddr = findCol(hdrs, ['ADDRESS', 'ADDRES']);
   var iCat  = findCol(hdrs, ['CATEGORY', 'TARIFF_TYPE', 'SUPPLY_TYPE', 'TARIFF']);
@@ -1318,9 +1318,9 @@ function parseFileInto(text, type){
   var iSub  = findCol(hdrs, ['SUBSTATION', 'SUB_STATION']);
   var iFeed = findCol(hdrs, ['FEEDER']);
   var iSerl = findCol(hdrs, ['SERIAL_NBR', 'METER_SERIAL_NBR', 'MTR_SRL_NO', 'METER_NO']);
-  var iPayAmt  = findCol(hdrs, ['LP AMT', 'PAY_AMT', 'LAST_PAY_AMT', 'LAST_PAYMENT_AMOUNT']);
-  var iPayDate = findCol(hdrs, ['LP DATE', 'PAY_DATE', 'LAST_PAY_DATE']);
-  var iTotOut  = findCol(hdrs, ['TOTAL OUTSTANDING', 'TOTAL_OUTSTANDING', 'AMOUNT_PAYABLE', 'OUTSTANDING']);
+  var iPayAmt  = findCol(hdrs, ['PAY_AMT', 'LP AMT', 'LAST_PAY_AMT', 'LAST_PAYMENT_AMOUNT']);
+  var iPayDate = findCol(hdrs, ['PAY_DATE', 'LP DATE', 'LAST_PAY_DATE']);
+  var iTotOut  = findCol(hdrs, ['TOTAL_OUTSTANDING', 'TOTAL OUTSTANDING', 'AMOUNT_PAYABLE', 'OUTSTANDING']);
 
   var pos=nl+1,len=text.length;
   while(pos<len){
