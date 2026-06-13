@@ -671,6 +671,10 @@ function pf(v){
   return parseFloat(String(v).replace(/,/g,'')) || 0;
 }
 
+function ac(id){
+  return String(id||'').replace(/^0+/,'').trim();
+}
+
 function catBadge(cat){
   var c=(cat||'').toUpperCase();
   if(c.includes('DOM')) return '<span class="b-dom">DOM</span>';
@@ -1306,6 +1310,7 @@ function parseFileInto(text, type){
     v = v.map(function(val){ return val.replace(/^"|"$/g, '').trim(); });
 
     var acct = v[iAcct] || ''; if(!acct)continue;
+    var key = ac(acct);
     
     var rawAmt = '', rawDate = '', outValue = '';
 
@@ -1316,7 +1321,7 @@ function parseFileInto(text, type){
       rawAmt   = v[v.length - 2] || '0';
       rawDate  = v[v.length - 3] || '-';
       
-      MASTER_MAP[acct] = {
+      MASTER_MAP[key] = {
         TOTAL_OUTSTANDING: outValue,
         LP_DATE: rawDate,
         LP_AMT: rawAmt
@@ -1351,7 +1356,7 @@ function parseFileInto(text, type){
     };
     
     if(type==='unbilled'){
-      var master = MASTER_MAP[acct];
+      var master = MASTER_MAP[key];
       if(master){
         var mOut = pf(master.TOTAL_OUTSTANDING);
         var curLpDate = parseDate(rawDate);
@@ -1364,7 +1369,7 @@ function parseFileInto(text, type){
       }
     }
 
-    PAY_DATA[acct]={
+    PAY_DATA[key]={
       PAY_AMT:rawAmt,
       PAY_DATE:rawDate,
       TOTAL_OUTSTANDING:outValue,
@@ -1414,7 +1419,7 @@ function dl(){
 }
 
 function buildConsumerCard(r, q){
-  var pay = PAY_DATA[String(r.ACCT_ID)] || null;
+  var pay = PAY_DATA[ac(r.ACCT_ID)] || null;
   var payHtml = '';
   
   var out = 0;
@@ -1424,26 +1429,9 @@ function buildConsumerCard(r, q){
   var sourceColor = r.SOURCE==='billed' ? '#10B981' : (r.SOURCE==='unbilled' ? '#F59E0B' : '#64748B');
 
   if(pay){
-    lpAmt = parseFloat(pay.PAY_AMT) || 0;
+    lpAmt = pf(pay.PAY_AMT);
     lpDateStr = pay.PAY_DATE || '-';
-    
-    if(r.SOURCE === 'billed'){
-      out = parseFloat(pay.TOTAL_OUTSTANDING) || 0;
-    } else if(r.SOURCE === 'unbilled'){
-      var master = MASTER_MAP[String(r.ACCT_ID)];
-      if(master){
-        out = parseFloat(master.TOTAL_OUTSTANDING) || 0;
-        // Logic: If last payment date in current data is > master cutoff, deduct it
-        var curLpDate = parseDate(lpDateStr);
-        if(curLpDate && MASTER_CUTOFF && curLpDate > MASTER_CUTOFF){
-          out -= lpAmt;
-        }
-      } else {
-        out = 0; // New consumer or not in master
-      }
-    } else {
-      out = parseFloat(pay.TOTAL_OUTSTANDING) || 0;
-    }
+    out = pf(pay.TOTAL_OUTSTANDING);
     
     payHtml = '<div style="margin-top:12px;padding:12px;background:linear-gradient(135deg,#EFF6FF,#F0FDF4);border-radius:10px;border:1px solid #BFDBFE;">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+

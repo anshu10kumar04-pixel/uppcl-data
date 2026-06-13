@@ -647,6 +647,10 @@ function pf(v){
   return parseFloat(String(v).replace(/,/g,'')) || 0;
 }
 
+function ac(id){
+  return String(id||'').replace(/^0+/,'').trim();
+}
+
 function catBadge(cat){
   var c=(cat||'').toUpperCase();
   if(c.includes('DOM')) return '<span class="b-dom">DOM</span>';
@@ -1299,6 +1303,7 @@ function parseFileInto(text, type){
     v = v.map(function(val){ return val.replace(/^"|"$/g, '').trim(); });
 
     var acct = v[iAcct] || ''; if(!acct)continue;
+    var key = ac(acct);
     
     var rawAmt = '', rawDate = '', outValue = '';
 
@@ -1309,7 +1314,7 @@ function parseFileInto(text, type){
       rawAmt   = v[v.length - 2] || '0';
       rawDate  = v[v.length - 3] || '-';
       
-      MASTER_MAP[acct] = {
+      MASTER_MAP[key] = {
         TOTAL_OUTSTANDING: outValue,
         LP_DATE: rawDate,
         LP_AMT: rawAmt
@@ -1344,7 +1349,7 @@ function parseFileInto(text, type){
     };
     
     if(type==='unbilled'){
-      var master = MASTER_MAP[acct];
+      var master = MASTER_MAP[key];
       if(master){
         var mOut = pf(master.TOTAL_OUTSTANDING);
         var curLpDate = parseDate(rawDate);
@@ -1357,7 +1362,7 @@ function parseFileInto(text, type){
       }
     }
 
-    PAY_DATA[acct]={
+    PAY_DATA[key]={
       PAY_AMT:rawAmt,
       PAY_DATE:rawDate,
       TOTAL_OUTSTANDING:outValue,
@@ -1407,7 +1412,7 @@ function dl(){
 }
 
 function buildConsumerCard(r, q){
-  var pay = PAY_DATA[String(r.ACCT_ID)] || null;
+  var pay = PAY_DATA[ac(r.ACCT_ID)] || null;
   var payHtml = '';
   
   var out = 0;
