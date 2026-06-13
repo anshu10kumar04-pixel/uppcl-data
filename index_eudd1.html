@@ -625,7 +625,7 @@ function haversine(lat1,lon1,lat2,lon2){ var R=6371,dLat=(lat2-lat1)*Math.PI/180
 function parseDate(s){
   if(!s || s==='-') return null;
   s = String(s).trim().toUpperCase();
-  // Handle DD-MMM-YY (e.g. 18-MAY-26)
+  // Handle DD-MMM-YY (e.g. 18-MAY-26) or DD/MM/YYYY
   var parts = s.split(/[-\/]/);
   if(parts.length===3){
     var d = parseInt(parts[0]), m, y = parseInt(parts[2]);
@@ -640,6 +640,11 @@ function parseDate(s){
     return new Date(y, m, d);
   }
   return null;
+}
+
+function pf(v){
+  if(v===undefined || v===null || v==='' || v==='-') return 0;
+  return parseFloat(String(v).replace(/,/g,'')) || 0;
 }
 
 function catBadge(cat){
@@ -1171,7 +1176,10 @@ function resolveFiles(){
         }
 
         FILES = [];
-        m_files.forEach(function(f){ FILES.push({url:RAW_BASE+f, type:'master'}); });
+        m_files.forEach(function(f){ 
+          var path = f.startsWith('master/') ? f : 'master/' + f;
+          FILES.push({url:RAW_BASE+path, type:'master'}); 
+        });
         b_files.forEach(function(f){ FILES.push({url:RAW_BASE+f, type:'billed'}); });
         u_files.forEach(function(f){ FILES.push({url:RAW_BASE+f, type:'unbilled'}); });
       }
@@ -1246,8 +1254,13 @@ function findCol(hdrs, options){
 }
 
 function parseFileInto(text, type){
-  var nl=text.indexOf('\n'); if(nl<0)return;
-  var hdrs=text.substring(0,nl).replace(/\r/,'').split(',').map(function(h){return h.replace(/"/g,'').trim().toUpperCase();});
+  // Skip leading empty lines (common in unbilled exports)
+  var start = 0;
+  while(start < text.length && (text[start]==='\n' || text[start]==='\r' || text[start]===' ')) start++;
+  if(start >= text.length) return;
+
+  var nl=text.indexOf('\n', start); if(nl<0)return;
+  var hdrs=text.substring(start,nl).replace(/\r/,'').split(',').map(function(h){return h.replace(/"/g,'').trim().toUpperCase();});
   
   var iAcct = findCol(hdrs, ['ACCT_ID']);
   var iMob  = findCol(hdrs, ['MOBILE_NO', 'MOBILE']);
@@ -1261,7 +1274,7 @@ function parseFileInto(text, type){
   var iSub  = findCol(hdrs, ['SUBSTATION']);
   var iFeed = findCol(hdrs, ['FEEDER']);
   var iSerl = findCol(hdrs, ['SERIAL_NBR', 'METER_SERIAL_NBR', 'MTR_SRL_NO']);
-  var iPayAmt  = findCol(hdrs, ['LP AMT', 'PAY_AMT', 'LAST_PAY_AMT', 'LAST_PAYMENT_AMOUNT', 'LAST_PAY_AMT']);
+  var iPayAmt  = findCol(hdrs, ['LP AMT', 'PAY_AMT', 'LAST_PAY_AMT', 'LAST_PAYMENT_AMOUNT']);
   var iPayDate = findCol(hdrs, ['LP DATE', 'PAY_DATE', 'LAST_PAY_DATE']);
   var iTotOut  = findCol(hdrs, ['TOTAL OUTSTANDING', 'TOTAL_OUTSTANDING', 'AMOUNT_PAYABLE']);
 
@@ -1270,12 +1283,24 @@ function parseFileInto(text, type){
     var end=text.indexOf('\n',pos); if(end<0)end=len;
     var line=text.substring(pos,end); pos=end+1;
     if(!line||line==='\r')continue;
-    var v=line.split(',');
-    var acct=(v[iAcct]||'').replace(/"/g,'').trim(); if(!acct)continue;
     
-    var rawAmt  = iPayAmt>=0  ? (v[iPayAmt] ||'').replace(/"/g,'') : '-';
-    var rawDate = iPayDate>=0 ? (v[iPayDate]||'').replace(/"/g,'') : '-';
-    var outValue= iTotOut>=0  ? (v[iTotOut] ||'-').replace(/"/g,'') : '-';
+    // Better CSV split handling for quoted commas
+    var v = [];
+    var inQuotes = false;
+    var current = '';
+    for(var i=0; i<line.length; i++){
+      var c = line[i];
+      if(c==='"' && (i===0 || line[i-1]!== '\\')){ inQuotes = !inQuotes; }
+      else if(c===',' && !inQuotes){ v.push(current.replace(/"/g,'').trim()); current = ''; }
+      else { current += c; }
+    }
+    v.push(current.replace(/"/g,'').trim());
+
+    var acct = (v[iAcct]||''); if(!acct)continue;
+    
+    var rawAmt  = iPayAmt>=0  ? (v[iPayAmt] ||'') : '-';
+    var rawDate = iPayDate>=0 ? (v[iPayDate]||'') : '-';
+    var outValue= iTotOut>=0  ? (v[iTotOut] ||'-') : '-';
     
     // Auto-swap amount/date if swapped in CSV
     if(rawAmt && rawDate && /\d{2}-\d{2}-\d{4}/.test(rawAmt)){var tmp=rawAmt;rawAmt=rawDate;rawDate=tmp;}
@@ -1286,26 +1311,24 @@ function parseFileInto(text, type){
         LP_DATE: rawDate,
         LP_AMT: rawAmt
       };
-      // For now, we only search in current Billed/Unbilled. 
-      // If a consumer is in master but not billed/unbilled, they might be inactive.
       continue;
     }
 
-    var lat=(v[iLat]||'').replace(/"/g,''), lon=(v[iLon]||'').replace(/"/g,'');
+    var lat=(v[iLat]||''), lon=(v[iLon]||'');
     var fLat=parseFloat(lat); if(fLat>50){var t=lat;lat=lon;lon=t;}
     
     var row={
       ACCT_ID:acct,
-      MOBILE_NO:(v[iMob]||'').replace(/"/g,''),
-      NAME:(v[iName]||'').replace(/"/g,''),
-      FATHER_NAME:iFath>=0?(v[iFath]||'').replace(/"/g,''):'',
-      ADDRESS:(v[iAddr]||'').replace(/"/g,''),
-      CATEGORY:(v[iCat]||'').replace(/"/g,''),
-      LOAD:(v[iLoad]||'').replace(/"/g,''),
+      MOBILE_NO:(v[iMob]||''),
+      NAME:(v[iName]||''),
+      FATHER_NAME:iFath>=0?(v[iFath]||''):'',
+      ADDRESS:(v[iAddr]||''),
+      CATEGORY:(v[iCat]||''),
+      LOAD:(v[iLoad]||''),
       LAT:lat, LON:lon,
-      SUBSTATION:(v[iSub]||'').replace(/"/g,''),
-      FEEDER:(v[iFeed]||'').replace(/"/g,''),
-      SERIAL_NBR:iSerl>=0?(v[iSerl]||'').replace(/"/g,''):'',
+      SUBSTATION:(v[iSub]||''),
+      FEEDER:(v[iFeed]||''),
+      SERIAL_NBR:iSerl>=0?(v[iSerl]||''):'',
       SOURCE: type,
       Google_Map_Link:(lat&&lon)?'https://www.google.com/maps?q='+lat+','+lon:''
     };
