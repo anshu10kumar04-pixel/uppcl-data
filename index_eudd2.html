@@ -135,10 +135,21 @@ mark{background:#EDE9FE;color:#4F46E5;border-radius:2px;}
 .sw select:focus,.sw input:focus{border-color:#4F46E5;}
 .lbl{font-size:10px;color:#374151;margin-bottom:5px;font-family:var(--fh);letter-spacing:1px;font-weight:700;}
 .fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;}
-.btn{font-family:var(--fh);font-size:13px;font-weight:700;letter-spacing:1px;padding:10px 18px;border-radius:10px;cursor:pointer;border:none;white-space:nowrap;}
+.btn{font-family:var(--fh);font-size:13px;font-weight:700;letter-spacing:1px;padding:10px 18px;border-radius:10px;cursor:pointer;border:none;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;}
 .btn-acc{background:#4F46E5;color:#fff;}
 .btn-out{background:transparent;color:#0EA5E9;border:1.5px solid #0EA5E9;}
 select option{background:#fff;color:#1E1B4B;}
+
+/* ── SETTINGS FIXES ── */
+.settings-card{background:#fff;border:1.5px solid #C7D2FE;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 4px 12px rgba(79,70,229,0.05);}
+.settings-grid-row{display:flex;gap:10px;flex-wrap:wrap;}
+.settings-grid-row input{flex:1;min-width:200px;}
+@media(max-width:480px){
+  .settings-grid-row{flex-direction:column;}
+  .settings-grid-row input, .settings-grid-row button{width:100%;min-width:0;}
+  .settings-btn-group{flex-direction:column;gap:8px;}
+  .settings-btn-group button{width:100%;}
+}
 
 /* ── SM UNRECHARGE ── */
 .atr-dc{background:#FFEBEE;color:#C62828;border:1.5px solid #FFCDD2;border-radius:8px;padding:10px 12px;width:100%;font-family:var(--fb);font-size:13px;font-weight:700;appearance:none;cursor:pointer;outline:none;}
@@ -850,7 +861,7 @@ function buildSettingsPanel(){
       '<div style="font-family:var(--fh);font-size:24px;font-weight:700;color:#4F46E5;margin-bottom:20px;text-align:center;">⚙️ SYSTEM SETTINGS</div>'+
 
       /* UPLOAD MASTER CARD */
-      '<div style="background:#fff;border:1.5px solid #C7D2FE;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 4px 12px rgba(79,70,229,0.05);">'+
+      '<div class="settings-card">'+
         '<div style="font-family:var(--fh);font-size:16px;font-weight:700;margin-bottom:12px;color:#1E1B4B;display:flex;align-items:center;gap:8px;">📤 UPLOAD MASTER DATA</div>'+
         '<div style="font-size:12px;color:var(--muted);margin-bottom:15px;line-height:1.5;">Select an Excel/CSV to split by division and push to GitHub. Columns: ACCT_ID, NAME, PAY_AMT, PAY_DATE, etc.</div>'+
         '<input type="file" id="settings-file" accept=".xlsx,.xls,.csv" style="width:100%;margin-bottom:15px;padding:8px;border:1px solid #E5E7EB;border-radius:8px;font-size:12px;"/>'+
@@ -860,15 +871,15 @@ function buildSettingsPanel(){
           '<thead style="background:#F8FAFF;position:sticky;top:0;"><tr><th style="text-align:left;padding:8px;">SUBSTATION</th><th>EUDD1</th><th>EUDD2</th></tr></thead>'+
           '<tbody id="sub-div-rows">'+rowsHtml+'</tbody></table>'+
         '</div>'+
-        '<div style="display:flex;gap:10px;">'+
-          '<input type="password" id="gh-pat" placeholder="GitHub Personal Access Token" value="'+getGhPat()+'" style="flex:1;border:1.5px solid #C7D2FE;border-radius:10px;padding:10px 14px;font-size:13px;" oninput="localStorage.setItem(&#39;gh_pat&#39;,this.value)"/>'+
+        '<div class="settings-grid-row">'+
+          '<input type="password" id="gh-pat" placeholder="GitHub Personal Access Token" value="'+getGhPat()+'" style="border:1.5px solid #C7D2FE;border-radius:10px;padding:10px 14px;font-size:13px;" oninput="localStorage.setItem(&#39;gh_pat&#39;,this.value)"/>'+
           '<button class="btn btn-acc" onclick="processAndUpload()">🚀 PROCESS &amp; UPLOAD</button>'+
         '</div>'+
         '<div id="settings-log" style="margin-top:15px;max-height:150px;overflow-y:auto;background:#0F172A;color:#A7F3D0;font-family:monospace;font-size:11px;padding:12px;border-radius:10px;display:none;"></div>'+
       '</div>'+
 
       /* NEW: LAT LONG UPLOAD CARD */
-      '<div style="background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 4px 12px rgba(14,165,233,0.05);">'+
+      '<div class="settings-card" style="background:#F0F9FF;border-color:#BAE6FD;">'+
         '<div style="font-family:var(--fh);font-size:16px;font-weight:700;margin-bottom:12px;color:#0369A1;display:flex;align-items:center;gap:8px;">📍 UPLOAD LAT/LONG MAPPING</div>'+
         '<div style="font-size:12px;color:var(--muted);margin-bottom:15px;line-height:1.5;">Bulk update consumer locations. Provide a file with columns: <b>ACCT_ID, LAT, LON</b>. These will override existing coordinates during search.</div>'+
         '<input type="file" id="latlong-file" accept=".xlsx,.xls,.csv" style="width:100%;margin-bottom:15px;padding:8px;border:1px solid #BAE6FD;border-radius:8px;font-size:12px;background:#fff;"/>'+
@@ -877,7 +888,7 @@ function buildSettingsPanel(){
       '</div>'+
 
       /* FTP SYNC CARD - COMPACT */
-      '<div style="background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:16px;padding:20px;box-shadow:0 4px 12px rgba(234,88,12,0.05);">'+
+      '<div class="settings-card" style="background:#FFF7ED;border-color:#FED7AA;">'+
         '<div style="font-family:var(--fh);font-size:16px;font-weight:700;margin-bottom:12px;color:#9A3412;display:flex;align-items:center;gap:8px;">📡 FTP DATA SYNC</div>'+
         '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:#fff;border:1px solid #FED7AA;margin-bottom:15px;">'+
           '<span id="ftp-dot" style="width:10px;height:10px;border-radius:50%;background:#9CA3AF;flex-shrink:0;"></span>'+
