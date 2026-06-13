@@ -1274,22 +1274,22 @@ function parseFileInto(text, type){
   var iName = findCol(hdrs, ['NAME']);
   var iFath = findCol(hdrs, ['FATHER_NAME']);
   var iAddr = findCol(hdrs, ['ADDRESS', 'ADDRES']);
-  var iCat  = findCol(hdrs, ['CATEGORY', 'TARIFF_TYPE', 'SUPPLY_TYPE']);
-  var iLoad = findCol(hdrs, ['LOAD', 'SANCTION_LOAD']);
+  var iCat  = findCol(hdrs, ['CATEGORY', 'TARIFF_TYPE', 'SUPPLY_TYPE', 'TARIFF']);
+  var iLoad = findCol(hdrs, ['LOAD', 'SANCTION_LOAD', 'SANCT_LOAD']);
   var iLat  = findCol(hdrs, ['LAT', 'LATITUDE']);
   var iLon  = findCol(hdrs, ['LON', 'LONGITUDE', 'LONG']);
-  var iSub  = findCol(hdrs, ['SUBSTATION']);
+  var iSub  = findCol(hdrs, ['SUBSTATION', 'SUB_STATION']);
   var iFeed = findCol(hdrs, ['FEEDER']);
-  var iSerl = findCol(hdrs, ['SERIAL_NBR', 'METER_SERIAL_NBR', 'MTR_SRL_NO']);
+  var iSerl = findCol(hdrs, ['SERIAL_NBR', 'METER_SERIAL_NBR', 'MTR_SRL_NO', 'METER_NO']);
   var iPayAmt  = findCol(hdrs, ['LP AMT', 'PAY_AMT', 'LAST_PAY_AMT', 'LAST_PAYMENT_AMOUNT']);
   var iPayDate = findCol(hdrs, ['LP DATE', 'PAY_DATE', 'LAST_PAY_DATE']);
-  var iTotOut  = findCol(hdrs, ['TOTAL OUTSTANDING', 'TOTAL_OUTSTANDING', 'AMOUNT_PAYABLE']);
+  var iTotOut  = findCol(hdrs, ['TOTAL OUTSTANDING', 'TOTAL_OUTSTANDING', 'AMOUNT_PAYABLE', 'OUTSTANDING']);
 
   var pos=nl+1,len=text.length;
   while(pos<len){
     var end=text.indexOf('\n',pos); if(end<0)end=len;
-    var line=text.substring(pos,end); pos=end+1;
-    if(!line||line==='\r')continue;
+    var line=text.substring(pos,end).trim(); pos=end+1;
+    if(!line)continue;
     
     // Better CSV split handling for quoted commas
     var v = [];
@@ -1298,21 +1298,24 @@ function parseFileInto(text, type){
     for(var i=0; i<line.length; i++){
       var c = line[i];
       if(c==='"' && (i===0 || line[i-1]!== '\\')){ inQuotes = !inQuotes; }
-      else if(c===',' && !inQuotes){ v.push(current.replace(/"/g,'').trim()); current = ''; }
+      else if(c===',' && !inQuotes){ v.push(current.trim()); current = ''; }
       else { current += c; }
     }
-    v.push(current.replace(/"/g,'').trim());
+    v.push(current.trim());
+    // Strip surrounding quotes from values
+    v = v.map(function(val){ return val.replace(/^"|"$/g, '').trim(); });
 
-    var acct = (v[iAcct]||''); if(!acct)continue;
+    var acct = v[iAcct] || ''; if(!acct)continue;
     
-    var rawAmt  = iPayAmt>=0  ? (v[iPayAmt] ||'') : '-';
-    var rawDate = iPayDate>=0 ? (v[iPayDate]||'') : '-';
-    var outValue= iTotOut>=0  ? (v[iTotOut] ||'-') : '-';
-    
-    // Auto-swap amount/date if swapped in CSV
-    if(rawAmt && rawDate && /\d{2}-\d{2}-\d{4}/.test(rawAmt)){var tmp=rawAmt;rawAmt=rawDate;rawDate=tmp;}
+    var rawAmt = '', rawDate = '', outValue = '';
 
     if(type==='master'){
+      // Master files often have unquoted commas in middle fields, 
+      // but financial info is always in the last columns.
+      outValue = v[v.length - 1] || '0';
+      rawAmt   = v[v.length - 2] || '0';
+      rawDate  = v[v.length - 3] || '-';
+      
       MASTER_MAP[acct] = {
         TOTAL_OUTSTANDING: outValue,
         LP_DATE: rawDate,
@@ -1320,6 +1323,13 @@ function parseFileInto(text, type){
       };
       continue;
     }
+
+    rawAmt   = iPayAmt>=0  ? (v[iPayAmt]  || '0') : '0';
+    rawDate  = iPayDate>=0 ? (v[iPayDate] || '-') : '-';
+    outValue = iTotOut>=0  ? (v[iTotOut]  || '0') : '0';
+    
+    // Auto-swap amount/date if swapped in CSV
+    if(rawAmt && rawDate && /\d{2}-\d{2}-\d{4}/.test(rawAmt)){var tmp=rawAmt;rawAmt=rawDate;rawDate=tmp;}
 
     var lat=(v[iLat]||''), lon=(v[iLon]||'');
     var fLat=parseFloat(lat); if(fLat>50){var t=lat;lat=lon;lon=t;}
@@ -1343,10 +1353,10 @@ function parseFileInto(text, type){
     if(type==='unbilled'){
       var master = MASTER_MAP[acct];
       if(master){
-        var mOut = parseFloat(master.TOTAL_OUTSTANDING) || 0;
+        var mOut = pf(master.TOTAL_OUTSTANDING);
         var curLpDate = parseDate(rawDate);
         if(curLpDate && MASTER_CUTOFF && curLpDate > MASTER_CUTOFF){
-          mOut -= parseFloat(rawAmt) || 0;
+          mOut -= pf(rawAmt);
         }
         outValue = mOut.toString();
       } else {
